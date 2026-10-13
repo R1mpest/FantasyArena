@@ -5,6 +5,7 @@ extends Node
 ## с --levelup-shot кадр снимается при первом окне выбора карт.
 ## Ключ --give=orbs,meteor,aura выдаёт оружие сразу на старте.
 ## Ключ --seed=N — фиксированный сид случайностей для сравнения прогонов.
+## Ключ --pause-shot — в конце открыть паузу → «Улучшения» (для скриншота).
 ## Ключ --god — герой не умирает (для проверки поздней игры).
 ## Ключ --weapons — всегда брать оружие и его прокачку, если они есть среди карт.
 
@@ -16,6 +17,7 @@ var _prefer_weapons := false
 var _shot_wait := 0.0
 var _give: PackedStringArray = []
 var _god := false
+var _pause_shot := false
 var _damage_taken := 0.0
 var _last_hp := -1.0
 var _picks := 0
@@ -39,6 +41,8 @@ func _ready() -> void:
 			_give = arg.get_slice("=", 1).split(",")
 		elif arg.begins_with("--seed="):
 			seed(int(arg.get_slice("=", 1)))
+		elif arg == "--pause-shot":
+			_pause_shot = true
 		elif arg == "--god":
 			_god = true
 		elif arg == "--weapons":
@@ -63,6 +67,7 @@ func _process(delta: float) -> void:
 	if panel.is_open():
 		if panel.choose(_pick(panel.options())):
 			_picks += 1
+		_last_usec = 0
 		return
 	_steer()
 	var player: Player = _run.player
@@ -116,6 +121,11 @@ func _finish() -> void:
 	print("AUTOPLAY пик_по_типам=", _peak_by_type, " живы_в_конце=", alive)
 	print("AUTOPLAY улучшения=", _run.upgrade_system.levels)
 	print("AUTOPLAY оружие=", player.weapons.keys())
+	if _pause_shot:
+		var overlay: Overlay = _run.find_children("*", "Overlay", true, false)[0]
+		overlay._show(Overlay.Mode.PAUSE)
+		overlay._show_upgrades()
+		await get_tree().process_frame
 	if _screenshot != "":
 		get_tree().paused = true
 		_run.level_up_panel.hide()

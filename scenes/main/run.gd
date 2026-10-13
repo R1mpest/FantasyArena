@@ -41,14 +41,15 @@ func _ready() -> void:
 	var hud := Hud.new()
 	hud.player = player
 	hud.experience = experience
-	hud.upgrade_system = upgrade_system
 	add_child(hud)
 
 	level_up_panel = LevelUpPanel.new()
 	level_up_panel.upgrade_system = upgrade_system
 	add_child(level_up_panel)
 
-	add_child(Overlay.new())
+	var overlay := Overlay.new()
+	overlay.upgrade_system = upgrade_system
+	add_child(overlay)
 
 
 func _process(_delta: float) -> void:

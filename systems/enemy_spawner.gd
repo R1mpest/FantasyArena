@@ -10,10 +10,12 @@ var player: Player
 var enemies_root: Node2D
 
 var _types: Array[EnemyData] = []
+var _grid := EnemyGrid.new()
 var _timer := 1.0
 
 
 func _ready() -> void:
+	add_child(_grid)
 	for file in ResourceLoader.list_directory(ENEMIES_DIR):
 		if file.ends_with(".tres"):
 			_types.append(load(ENEMIES_DIR + file))
@@ -41,6 +43,7 @@ func _spawn(type: EnemyData, minutes: float) -> void:
 	enemy.data = type
 	enemy.k = Formulas.difficulty(minutes)
 	enemy.target = player
+	enemy.grid = _grid
 	enemy.respawn_radius = _ring_radius()
 	enemy.position = player.global_position + Vector2.from_angle(randf() * TAU) * enemy.respawn_radius
 	enemies_root.add_child(enemy)

@@ -4,6 +4,10 @@ extends CharacterBody2D
 ## Стрелок (data.attack_range > 0) держит дистанцию и кидает медленные снаряды.
 
 const KNOCKBACK := 70.0
+## Скорость, с которой соседи расталкивают врагов.
+const SEPARATION_SPEED := 70.0
+## Расталкивание пересчитывается раз в столько физических кадров (у врагов вразнобой).
+const SEPARATION_EVERY := 5
 
 var data: EnemyData
 ## Множитель сложности k(t) на момент появления.
@@ -11,6 +15,8 @@ var k := 1.0
 var target: Node2D
 ## Если враг отстал дальше этого расстояния, он переносится ближе к игроку.
 var respawn_radius := 400.0
+## Сетка для расталкивания; без неё враги проходят друг сквозь друга.
+var grid: EnemyGrid
 
 var hp := 1.0
 var contact_dps := 0.0
@@ -21,6 +27,8 @@ var _knockback := Vector2.ZERO
 var _flash_time := 0.0
 var _shot_cooldown := 0.0
 var _strafe_sign := 1.0
+var _separation := Vector2.ZERO
+var _frame := 0
 
 
 func _ready() -> void:
@@ -30,9 +38,11 @@ func _ready() -> void:
 		add_to_group(&"ranged")
 		_shot_cooldown = randf_range(1.0, data.shot_interval)
 		_strafe_sign = 1.0 if randf() < 0.5 else -1.0
+	# Слой нужен, чтобы враг попадал в снаряды и хитбокс игрока. Друг с другом враги
+	# физически не сталкиваются — их расталкивает EnemyGrid.
 	collision_layer = 2
-	collision_mask = 2
-	motion_mode = MOTION_MODE_FLOATING
+	collision_mask = 0
+	_frame = randi() % SEPARATION_EVERY
 	hp = data.max_hp * k
 	contact_dps = data.contact_dps * k
 
@@ -56,9 +66,12 @@ func _physics_process(delta: float) -> void:
 	if is_ranged():
 		move = _ranged_move(direction, to_target.length())
 		_try_shoot(delta, to_target.length())
-	velocity = move * data.speed + _knockback
+	_frame += 1
+	if grid != null and _frame % SEPARATION_EVERY == 0:
+		_separation = grid.separation(self)
+	velocity = move * data.speed + _separation * SEPARATION_SPEED + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
-	move_and_slide()
+	global_position += velocity * delta
 	_sprite.flip_h = direction.x < 0.0
 
 	if _flash_time > 0.0:

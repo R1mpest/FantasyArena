@@ -42,5 +42,11 @@ godot --headless --fixed-fps 60 --path . res://tests/autoplay.tscn -- --seconds=
 Автопрогон бегает по кругу, сам выбирает карты и в конце печатает итог забега.
 Ключи: `--give=orbs,meteor,aura` — выдать оружие на старте, `--weapons` — брать карты оружия,
 `--screenshot=файл.png` — снимок в конце (нужно окно, не `--headless`).
+Замер производительности (требование Н1): на арене всё время держится N врагов, у героя всё оружие.
+
+```sh
+godot --headless --fixed-fps 60 --path . res://tests/bench.tscn -- --enemies=300 --seconds=20
+```
+
 Снимок главного меню: `godot --path . res://tests/menu_shot.tscn -- --screenshot=menu.png`.
 CI (`.gitea/workflows/ci.yml`) запускает обе проверки на каждый push.
