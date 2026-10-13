@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"regen"
+title = "Регенерация"
+description = "+0.6 здоровья в секунду"
+stat = &"regen"
+amount = 0.6
+mode = 0
+max_level = 5
+weight = 0.8

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"haste"
+title = "Ускоритель"
+description = "−15% перезарядки"
+stat = &"fire_interval"
+amount = 0.85
+mode = 1
+max_level = 5
+weight = 1.0

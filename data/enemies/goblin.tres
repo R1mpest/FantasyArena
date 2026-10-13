@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"goblin"
+display_name = "Гоблин"
+anim_run = "goblin_run_anim"
+max_hp = 12.0
+speed = 58.0
+contact_dps = 5.0
+xp = 1
+radius = 5.0
+from_minute = 0.0
+weight = 3.0

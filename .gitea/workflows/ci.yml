@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Скачать Godot
+        run: |
+          mkdir -p .ci
+          curl -fsSL -o .ci/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q -o .ci/godot.zip -d .ci
+          mv ".ci/Godot_v${GODOT_VERSION}-stable_linux.x86_64" .ci/godot
+
+      - name: Импорт ассетов
+        run: .ci/godot --headless --path . --import
+
+      - name: Модульные тесты формул
+        run: |
+          .ci/godot --headless --path . res://tests/test_formulas.tscn 2>&1 | tee tests.log
+          grep -q "провалено 0" tests.log
+          ! grep -E "SCRIPT ERROR|^ERROR" tests.log
+
+      - name: Автопрогон забега (2 минуты)
+        run: |
+          .ci/godot --headless --fixed-fps 60 --path . res://tests/autoplay.tscn -- --seconds=120 2>&1 | tee autoplay.log
+          grep -q "AUTOPLAY время" autoplay.log
+          ! grep -E "SCRIPT ERROR|^ERROR" autoplay.log

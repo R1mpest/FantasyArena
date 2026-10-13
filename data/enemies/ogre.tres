@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"ogre"
+display_name = "Огр"
+anim_run = "ogre_run_anim"
+max_hp = 110.0
+speed = 30.0
+contact_dps = 15.0
+xp = 6
+radius = 11.0
+from_minute = 2.0
+weight = 0.7

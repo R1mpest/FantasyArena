@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"quiver"
+title = "Колчан"
+description = "+1 снаряд в залпе"
+stat = &"projectile_count"
+amount = 1.0
+mode = 0
+max_level = 4
+weight = 0.8

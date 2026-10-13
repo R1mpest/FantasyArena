@@ -1,0 +1,6 @@
+.godot/
+.ci/
+build/
+*.tmp
+autoplay.log
+tests.log

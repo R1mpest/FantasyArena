@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"heart"
+title = "Сердце"
+description = "+20 к максимальному здоровью"
+stat = &"max_hp"
+amount = 20.0
+mode = 0
+max_level = 5
+weight = 1.0

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"skelet"
+display_name = "Скелет"
+anim_run = "skelet_run_anim"
+max_hp = 22.0
+speed = 42.0
+contact_dps = 8.0
+xp = 2
+radius = 5.0
+from_minute = 0.5
+weight = 2.0

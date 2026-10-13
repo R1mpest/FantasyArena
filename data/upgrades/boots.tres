@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"boots"
+title = "Сапоги"
+description = "+10% скорости бега"
+stat = &"move_speed"
+amount = 1.1
+mode = 1
+max_level = 5
+weight = 1.0
