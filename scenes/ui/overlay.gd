@@ -9,6 +9,7 @@ var _root: Control
 var _title: Label
 var _stats: Label
 var _button: Button
+var _menu_button: Button
 
 
 func _ready() -> void:
@@ -22,9 +23,11 @@ func _ready() -> void:
 	_stats = UiKit.label("", 10, HORIZONTAL_ALIGNMENT_CENTER)
 	box.add_child(_stats)
 	_button = UiKit.button("")
-	_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_button.pressed.connect(_on_button_pressed)
 	box.add_child(_button)
+	_menu_button = UiKit.button("В главное меню")
+	_menu_button.pressed.connect(Transition.change_scene.bind(Transition.MENU_SCENE))
+	box.add_child(_menu_button)
 	add_child(_root)
 	_root.hide()
 	EventBus.player_died.connect(_show.bind(Mode.DEAD))
@@ -65,5 +68,4 @@ func _on_button_pressed() -> void:
 
 
 func _restart() -> void:
-	get_tree().paused = false
-	get_tree().reload_current_scene()
+	Transition.change_scene(Transition.RUN_SCENE)

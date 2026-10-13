@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_green_magic_staff.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"aura_radius"
+title = "Аура: радиус"
+description = "+15% радиуса ауры"
+icon = ExtResource("2_icon")
+kind = 1
+weapon = &"aura"
+stat = &"radius"
+amount = 1.15
+mode = 1
+max_level = 4
+weight = 1.0

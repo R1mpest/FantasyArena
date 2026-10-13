@@ -19,6 +19,11 @@ static func difficulty(minutes: float) -> float:
 	return 1.0 + K_ALPHA * minutes + K_BETA * minutes * minutes
 
 
+## Опыт с врага растёт вместе с силой врагов, чтобы уровни не замедлялись к середине забега.
+static func xp_drop(base_xp: int, minutes: float) -> int:
+	return maxi(1, roundi(base_xp * difficulty(minutes)))
+
+
 ## Пауза между волнами спавна, секунды.
 static func spawn_interval(minutes: float) -> float:
 	return maxf(0.35, 1.0 - 0.05 * minutes)
@@ -26,4 +31,4 @@ static func spawn_interval(minutes: float) -> float:
 
 ## Сколько врагов появляется за одну волну.
 static func spawn_batch(minutes: float) -> int:
-	return 1 + int(minutes * 0.6)
+	return 1 + int(minutes * 0.45)

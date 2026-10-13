@@ -16,3 +16,14 @@ extends Resource
 @export var from_minute: float = 0.0
 ## Вес при случайном выборе типа.
 @export var weight: float = 1.0
+## Сколько врагов этого типа может быть на арене одновременно (0 — без ограничения).
+@export var max_alive: int = 0
+## Сколько врагов этого типа может появиться за одну волну (0 — без ограничения).
+@export var max_per_wave: int = 0
+
+@export_group("Дальний бой")
+## Дистанция стрельбы; 0 — враг ближнего боя.
+@export var attack_range: float = 0.0
+@export var shot_damage: float = 0.0
+@export var shot_interval: float = 2.5
+@export var shot_speed: float = 100.0

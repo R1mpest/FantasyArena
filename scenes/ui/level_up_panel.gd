@@ -1,77 +1,109 @@
 class_name LevelUpPanel
 extends CanvasLayer
-## Окно повышения уровня: пауза и выбор 1 из 3 улучшений (мышь, стрелки+Enter или 1–3).
+## Окно повышения уровня: пауза и выбор 1 из 3 карт (мышь, стрелки+Enter или 1–3).
 
 var upgrade_system: UpgradeSystem
 
 var _pending := 0
+var _level := 1
+var _busy := false
 var _options: Array[UpgradeData] = []
-var _root: Control
+var _cards: Array[UpgradeCard] = []
+var _dim: ColorRect
 var _title: Label
-var _buttons: VBoxContainer
+var _row: HBoxContainer
 
 
 func _ready() -> void:
 	layer = 20
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	var parts := UiKit.modal()
-	_root = parts[0]
-	var box: VBoxContainer = parts[1]
-	_title = UiKit.label("", 14, HORIZONTAL_ALIGNMENT_CENTER)
-	box.add_child(_title)
-	box.add_child(UiKit.label("Выберите улучшение", 9, HORIZONTAL_ALIGNMENT_CENTER))
-	_buttons = VBoxContainer.new()
-	_buttons.add_theme_constant_override(&"separation", 4)
-	box.add_child(_buttons)
-	add_child(_root)
-	_root.hide()
+	_dim = ColorRect.new()
+	_dim.color = Color(0.03, 0.02, 0.06, 0.7)
+	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_dim.add_child(center)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override(&"separation", 8)
+	center.add_child(column)
+	_title = UiKit.label("", 20, HORIZONTAL_ALIGNMENT_CENTER)
+	_title.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4))
+	column.add_child(_title)
+	column.add_child(UiKit.label("Выберите карту", 10, HORIZONTAL_ALIGNMENT_CENTER))
+	_row = HBoxContainer.new()
+	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_row.add_theme_constant_override(&"separation", 14)
+	_row.custom_minimum_size = Vector2(0, UpgradeCard.SIZE.y + 10)
+	column.add_child(_row)
+	column.add_child(UiKit.label("Мышь · стрелки и Enter · клавиши 1–3", 8, HORIZONTAL_ALIGNMENT_CENTER))
+	_dim.hide()
 	EventBus.level_up.connect(_on_level_up)
 
 
 func is_open() -> bool:
-	return _root.visible
+	return _dim.visible
 
 
-func option_count() -> int:
-	return _options.size()
+func options() -> Array[UpgradeData]:
+	return _options
 
 
-func choose(index: int) -> void:
-	if not is_open() or index < 0 or index >= _options.size():
-		return
+## Возвращает false, если выбрать сейчас нельзя (окно закрыто или идёт анимация).
+func choose(index: int) -> bool:
+	if not is_open() or _busy or index < 0 or index >= _options.size():
+		return false
+	_busy = true
+	_play_choice(index)
+	return true
+
+
+func _play_choice(index: int) -> void:
+	for i in _cards.size():
+		if i != index:
+			_cards[i].play_discard()
+	await _cards[index].play_selected().finished
 	upgrade_system.apply(_options[index])
 	_pending -= 1
 	if _pending > 0:
 		_show_choices()
 	else:
-		_root.hide()
+		var fade := create_tween()
+		fade.tween_property(_dim, "modulate:a", 0.0, 0.12)
+		await fade.finished
+		_dim.hide()
 		get_tree().paused = false
+	_busy = false
 
 
 func _on_level_up(level: int) -> void:
 	_pending += 1
-	_title.text = "Уровень %d!" % level
+	_level = level
 	if not is_open():
+		_dim.modulate.a = 0.0
+		create_tween().tween_property(_dim, "modulate:a", 1.0, 0.15)
 		_show_choices()
 
 
 func _show_choices() -> void:
 	get_tree().paused = true
+	_title.text = "Уровень %d!" % (_level - _pending + 1)
 	_options = upgrade_system.roll(3)
-	for child in _buttons.get_children():
-		_buttons.remove_child(child)
-		child.queue_free()
+	for card in _cards:
+		_row.remove_child(card)
+		card.queue_free()
+	_cards.clear()
 	for i in _options.size():
 		var upgrade := _options[i]
-		var level_text := ""
-		if upgrade.max_level > 0:
-			var next_level := upgrade_system.level_of(upgrade) + 1
-			level_text = "  [ур. %d/%d]" % [next_level, upgrade.max_level]
-		var button := UiKit.button("%d. %s%s\n    %s" % [i + 1, upgrade.title, level_text, upgrade.description])
-		button.pressed.connect(choose.bind(i))
-		_buttons.add_child(button)
-	_root.show()
-	(_buttons.get_child(0) as Button).grab_focus()
+		var next_level := 0 if upgrade.kind == UpgradeData.Kind.NEW_WEAPON or upgrade.max_level == 0 else upgrade_system.level_of(upgrade) + 1
+		var card := UpgradeCard.new()
+		card.setup(upgrade, next_level, i + 1)
+		card.pressed.connect(choose.bind(i))
+		_row.add_child(card)
+		card.play_in(0.12 * i)
+		_cards.append(card)
+	_dim.show()
+	_cards[0].grab_focus.call_deferred()
 
 
 func _unhandled_input(event: InputEvent) -> void:

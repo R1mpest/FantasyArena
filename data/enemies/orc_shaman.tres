@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"orc_shaman"
+display_name = "Орк-шаман"
+anim_run = "orc_shaman_run_anim"
+max_hp = 30.0
+speed = 36.0
+contact_dps = 6.0
+xp = 4
+radius = 6.0
+from_minute = 3.0
+weight = 0.5
+max_alive = 8
+attack_range = 140.0
+shot_damage = 8.0
+shot_interval = 2.8
+shot_speed = 105.0

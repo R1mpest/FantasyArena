@@ -44,7 +44,7 @@ func _fire(target: Enemy) -> void:
 		var projectile := Projectile.new()
 		projectile.position = global_position
 		projectile.velocity = aim.rotated((i - (count - 1) / 2.0) * SPREAD) * player.projectile_speed
-		projectile.damage = player.damage
+		projectile.damage = player.damage * player.might
 		projectile.pierce = int(player.pierce)
 		projectile.lifetime = player.attack_range / player.projectile_speed * 1.3
 		player.projectile_root.add_child(projectile)

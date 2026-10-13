@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_big_blue.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"orbs_size"
+title = "Сферы: размер"
+description = "+25% размера сфер и радиуса орбиты"
+icon = ExtResource("2_icon")
+kind = 1
+weapon = &"orbs"
+stat = &"orb_size"
+amount = 1.25
+mode = 1
+max_level = 4
+weight = 1.0

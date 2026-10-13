@@ -1,6 +1,7 @@
 class_name Enemy
 extends CharacterBody2D
 ## Враг: идёт к игроку, наносит урон касанием, при смерти шлёт enemy_died.
+## Стрелок (data.attack_range > 0) держит дистанцию и кидает медленные снаряды.
 
 const KNOCKBACK := 70.0
 
@@ -18,10 +19,17 @@ var dead := false
 var _sprite: AnimatedSprite2D
 var _knockback := Vector2.ZERO
 var _flash_time := 0.0
+var _shot_cooldown := 0.0
+var _strafe_sign := 1.0
 
 
 func _ready() -> void:
 	add_to_group(&"enemies")
+	add_to_group(StringName("enemy_" + data.id))
+	if is_ranged():
+		add_to_group(&"ranged")
+		_shot_cooldown = randf_range(1.0, data.shot_interval)
+		_strafe_sign = 1.0 if randf() < 0.5 else -1.0
 	collision_layer = 2
 	collision_mask = 2
 	motion_mode = MOTION_MODE_FLOATING
@@ -44,7 +52,11 @@ func _physics_process(delta: float) -> void:
 		global_position = target.global_position + Vector2.from_angle(randf() * TAU) * respawn_radius
 		return
 	var direction := to_target.normalized()
-	velocity = direction * data.speed + _knockback
+	var move := direction
+	if is_ranged():
+		move = _ranged_move(direction, to_target.length())
+		_try_shoot(delta, to_target.length())
+	velocity = move * data.speed + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
 	move_and_slide()
 	_sprite.flip_h = direction.x < 0.0
@@ -53,6 +65,47 @@ func _physics_process(delta: float) -> void:
 		_flash_time -= delta
 		if _flash_time <= 0.0:
 			_sprite.modulate = Color.WHITE
+
+
+func is_ranged() -> bool:
+	return data.attack_range > 0.0
+
+
+## Подходит до дистанции стрельбы, отступает, если игрок слишком близко, иначе обходит его по кругу.
+func _ranged_move(direction: Vector2, distance: float) -> Vector2:
+	if distance > data.attack_range:
+		return direction
+	if distance < data.attack_range * 0.65:
+		return -direction
+	return direction.orthogonal() * _strafe_sign * 0.5
+
+
+func _try_shoot(delta: float, distance: float) -> void:
+	_shot_cooldown -= delta
+	if _shot_cooldown > 0.0 or distance > data.attack_range * 1.15:
+		return
+	_shot_cooldown = data.shot_interval
+	var shot := EnemyProjectile.new()
+	shot.position = center()
+	shot.velocity = center().direction_to(target.global_position + Vector2(0, -10)) * data.shot_speed
+	shot.damage = data.shot_damage * k
+	get_parent().add_child(shot)
+
+
+## Центр тела врага (позиция узла — это его ноги).
+func center() -> Vector2:
+	return global_position + Vector2(0, -data.radius)
+
+
+## Живые враги, чьё тело задевает круг center/radius.
+static func in_radius(tree: SceneTree, at: Vector2, radius: float) -> Array[Enemy]:
+	var result: Array[Enemy] = []
+	for node in tree.get_nodes_in_group(&"enemies"):
+		var enemy := node as Enemy
+		var reach := radius + enemy.data.radius
+		if not enemy.dead and enemy.center().distance_squared_to(at) <= reach * reach:
+			result.append(enemy)
+	return result
 
 
 func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO) -> void:
@@ -64,5 +117,5 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO) -> void:
 	_sprite.modulate = Color(1, 0.35, 0.35)
 	if hp <= 0.0:
 		dead = true
-		EventBus.enemy_died.emit(global_position, data.xp)
+		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp, GameState.minutes()))
 		queue_free()

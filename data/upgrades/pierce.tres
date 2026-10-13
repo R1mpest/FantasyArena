@@ -1,12 +1,16 @@
 [gd_resource type="Resource" script_class="UpgradeData" format=3]
 
 [ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_spear.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_data")
 id = &"pierce"
 title = "Пробитие"
 description = "Снаряд пробивает ещё одного врага"
+icon = ExtResource("2_icon")
+kind = 0
+weapon = &""
 stat = &"pierce"
 amount = 1.0
 mode = 0

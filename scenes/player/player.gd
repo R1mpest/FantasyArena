@@ -8,7 +8,9 @@ var hp := 100.0
 var move_speed := 85.0
 var regen := 0.0
 var pickup_radius := 48.0
-var damage := 12.0
+## Общий множитель урона всего оружия.
+var might := 1.0
+var damage := 14.0
 var fire_interval := 0.7
 var projectile_speed := 260.0
 var projectile_count := 1.0
@@ -17,10 +19,13 @@ var attack_range := 200.0
 
 ## Куда оружие добавляет снаряды.
 var projectile_root: Node
+## id оружия -> узел Weapon (стартовый снаряд сюда не входит).
+var weapons: Dictionary = {}
 var dead := false
 
 var _sprite: AnimatedSprite2D
 var _hurtbox: Area2D
+var _hit_flash := 0.0
 
 
 func _ready() -> void:
@@ -65,16 +70,46 @@ func _physics_process(delta: float) -> void:
 	_take_contact_damage(delta)
 
 
+## Разовый урон (снаряд врага).
+func take_damage(amount: float) -> void:
+	if dead:
+		return
+	hp -= amount
+	_hit_flash = 0.15
+	if hp <= 0.0:
+		_die()
+
+
 func heal(amount: float) -> void:
 	hp = minf(hp + amount, max_hp)
 
 
+func has_weapon(id: StringName) -> bool:
+	return weapons.has(id)
+
+
+func add_weapon(id: StringName) -> void:
+	if has_weapon(id):
+		return
+	var weapon: Weapon
+	match id:
+		&"orbs":
+			weapon = OrbitWeapon.new()
+		&"meteor":
+			weapon = MeteorWeapon.new()
+		&"aura":
+			weapon = AuraWeapon.new()
+		_:
+			push_error("Неизвестное оружие: %s" % id)
+			return
+	weapon.player = self
+	weapon.position = Vector2(0, -10)
+	weapons[id] = weapon
+	add_child(weapon)
+
+
 func apply_upgrade(upgrade: UpgradeData) -> void:
-	var current: float = get(upgrade.stat)
-	if upgrade.mode == UpgradeData.Mode.MULTIPLY:
-		set(upgrade.stat, current * upgrade.amount)
-	else:
-		set(upgrade.stat, current + upgrade.amount)
+	upgrade.apply_to(self)
 	if upgrade.stat == &"max_hp":
 		hp += upgrade.amount
 
@@ -85,7 +120,8 @@ func _take_contact_damage(delta: float) -> void:
 		var enemy := body as Enemy
 		if enemy != null and not enemy.dead:
 			dps += enemy.contact_dps
-	_sprite.modulate = Color(1, 0.45, 0.45) if dps > 0.0 else Color.WHITE
+	_hit_flash = maxf(0.0, _hit_flash - delta)
+	_sprite.modulate = Color(1, 0.45, 0.45) if dps > 0.0 or _hit_flash > 0.0 else Color.WHITE
 	if dps <= 0.0:
 		return
 	hp -= dps * delta

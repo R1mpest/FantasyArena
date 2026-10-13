@@ -68,5 +68,6 @@ func _process(_delta: float) -> void:
 	for upgrade in upgrade_system.upgrades:
 		var level := upgrade_system.level_of(upgrade)
 		if level > 0:
-			parts.append("%s %d" % [upgrade.title, level])
+			var is_weapon := upgrade.kind == UpgradeData.Kind.NEW_WEAPON
+			parts.append(upgrade.title if is_weapon else "%s %d" % [upgrade.title, level])
 	_upgrades_label.text = " · ".join(parts)
