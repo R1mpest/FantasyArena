@@ -20,7 +20,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_angle = wrapf(_angle + rotation_speed * delta, 0.0, TAU)
+	_angle = wrapf(_angle + rotation_speed * player.attack_speed() * delta, 0.0, TAU)
 	queue_redraw()
 	if player.dead:
 		return

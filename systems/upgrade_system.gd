@@ -19,6 +19,9 @@ func _ready() -> void:
 	for file in ResourceLoader.list_directory(UPGRADES_DIR):
 		if file.ends_with(".tres"):
 			upgrades.append(load(UPGRADES_DIR + file))
+	# Личные навыки выпадают только своему персонажу.
+	if player != null and player.character != null:
+		upgrades.append_array(player.character.personal_upgrades)
 	_heal.id = &"heal"
 	_heal.title = "Лечение"
 	_heal.description = "Восстановить 30% здоровья"
@@ -73,6 +76,8 @@ func apply(upgrade: UpgradeData) -> void:
 			player.add_weapon(upgrade.weapon)
 		UpgradeData.Kind.WEAPON_STAT:
 			player.weapons[upgrade.weapon].apply_upgrade(upgrade)
+		UpgradeData.Kind.PERSONAL:
+			player.set_perk(upgrade, levels[upgrade.id])
 		_:
 			player.apply_upgrade(upgrade)
 

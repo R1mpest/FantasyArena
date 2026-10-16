@@ -12,6 +12,7 @@ func _ready() -> void:
 	_test_spawn()
 	_test_upgrade_roll()
 	_test_spawn_types()
+	_test_personal_perks()
 	print("ТЕСТЫ: пройдено %d, провалено %d" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -95,6 +96,43 @@ func _test_spawn_types() -> void:
 		ogres += 1 if type.id == &"ogre" else 0
 	_check(ogres <= 2, "не больше 2 огров за волну")
 	spawner.free()
+
+
+func _test_personal_perks() -> void:
+	var player := Player.new()
+	player.projectile_root = self
+	add_child(player)
+	_check(player.character != null and player.character.personal_upgrades.size() == 3, "у волшебника 3 личных навыка")
+	var system := UpgradeSystem.new()
+	system.player = player
+	add_child(system)
+	_check(system.upgrades.size() == 24, "21 общая карта + 3 личных")
+	var by_id := {}
+	for upgrade in system.upgrades:
+		by_id[upgrade.id] = upgrade
+
+	system.apply(by_id[&"mana_shield"])
+	_check(player.shield == 15.0, "щит ур. 1 держит 15 урона")
+	player.take_damage(10.0)
+	_check(player.hp == 100.0 and player.shield == 5.0, "щит поглощает урон раньше здоровья")
+	player.take_damage(10.0)
+	_check(player.hp == 95.0 and player.shield == 0.0, "остаток урона после щита идёт в здоровье")
+
+	system.apply(by_id[&"flow"])
+	for i in 15:
+		EventBus.enemy_died.emit(Vector2.ZERO, 1)
+	_check(is_equal_approx(player.attack_speed_bonus, 0.2), "«Поток» ур. 1 упирается в +20%")
+	player.take_damage(1.0)
+	_check(player.attack_speed_bonus == 0.0, "урон по здоровью сбрасывает «Поток»")
+
+	system.apply(by_id[&"resonance"])
+	_check(player.resonance_every == 6 and player.resonance_radius == 24.0, "«Резонанс» ур. 1: каждый 6-й, радиус 24")
+	system.apply(by_id[&"resonance"])
+	system.apply(by_id[&"resonance"])
+	_check(player.resonance_every == 4 and player.resonance_radius == 32.0, "«Резонанс» ур. 3: каждый 4-й, радиус 32")
+	_check(not system.is_available(by_id[&"resonance"]), "навык выше 3-го уровня не предлагается")
+	system.free()
+	player.free()
 
 
 func _check(condition: bool, name: String) -> void:

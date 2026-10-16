@@ -17,7 +17,7 @@ func _physics_process(delta: float) -> void:
 	_cooldown -= delta
 	if _cooldown > 0.0:
 		return
-	_cooldown = interval
+	_cooldown = interval / player.attack_speed()
 	var meteor := Meteor.new()
 	meteor.damage = damage * player.might
 	meteor.radius = blast_radius

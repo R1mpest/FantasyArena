@@ -116,6 +116,14 @@ func _show_upgrades() -> void:
 			_add_row(_stats_column, upgrade.icon, upgrade.title, _level_text(upgrade), false)
 	if _stats_column.get_child_count() == 1:
 		_stats_column.add_child(UiKit.label("пока ничего", 9))
+	var personal := upgrade_system.upgrades.filter(func(u: UpgradeData) -> bool:
+		return u.kind == UpgradeData.Kind.PERSONAL and upgrade_system.level_of(u) > 0)
+	if not personal.is_empty():
+		var header := UiKit.label("Личные навыки", 11)
+		header.add_theme_color_override(&"font_color", Color(0.8, 0.5, 1.0))
+		_stats_column.add_child(header)
+		for upgrade: UpgradeData in personal:
+			_add_row(_stats_column, upgrade.icon, upgrade.title, _level_text(upgrade), false)
 	_root.hide()
 	_upgrades_view.show()
 	(_upgrades_view.find_children("*", "Button", true, false)[0] as Button).grab_focus()

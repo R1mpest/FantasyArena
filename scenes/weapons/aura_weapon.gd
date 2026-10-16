@@ -22,7 +22,7 @@ func _physics_process(delta: float) -> void:
 	_timer -= delta
 	if _timer > 0.0:
 		return
-	_timer = tick
+	_timer = tick / player.attack_speed()
 	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
 		enemy.take_damage(damage * player.might)
 	_pulse = 1.0

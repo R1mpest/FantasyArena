@@ -55,7 +55,7 @@ func setup(card_upgrade: UpgradeData, level: int, hotkey: int) -> void:
 	var level_text := "Новое!" if level == 0 else "Ур. %d / %d" % [level, upgrade.max_level]
 	column.add_child(_colored(UiKit.label(level_text, 9, HORIZONTAL_ALIGNMENT_CENTER), Color(1, 0.9, 0.6)))
 
-	var description := UiKit.label(upgrade.description, 9, HORIZONTAL_ALIGNMENT_CENTER)
+	var description := UiKit.label(upgrade.description_for(level), 9, HORIZONTAL_ALIGNMENT_CENTER)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(description)
@@ -112,6 +112,8 @@ func _accent() -> Color:
 			return Color(0.95, 0.75, 0.25)
 		UpgradeData.Kind.WEAPON_STAT:
 			return Color(0.95, 0.5, 0.3)
+		UpgradeData.Kind.PERSONAL:
+			return Color(0.8, 0.5, 1.0)
 	return Color(0.45, 0.85, 0.5) if upgrade.stat == &"heal" else Color(0.45, 0.65, 1.0)
 
 
@@ -121,6 +123,8 @@ func _category() -> String:
 			return "НОВОЕ ОРУЖИЕ"
 		UpgradeData.Kind.WEAPON_STAT:
 			return "УЛУЧШЕНИЕ ОРУЖИЯ"
+		UpgradeData.Kind.PERSONAL:
+			return "ЛИЧНЫЙ НАВЫК"
 	return "ЛЕЧЕНИЕ" if upgrade.stat == &"heal" else "ХАРАКТЕРИСТИКА"
 
 

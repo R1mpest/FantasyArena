@@ -1,6 +1,16 @@
 class_name Player
 extends CharacterBody2D
 ## Игрок: движение, здоровье и статы, которые качаются улучшениями.
+## Внешний вид, стартовые статы и личные навыки берутся из CharacterData.
+
+## Урон дошёл до здоровья (после щита).
+signal hp_lost(amount: float)
+## Щит опустел от урона.
+signal shield_broken
+
+const DEFAULT_CHARACTER := "res://data/characters/wizard/wizard.tres"
+
+var character: CharacterData
 
 # Все статы float, чтобы любое улучшение применялось одной формулой.
 var max_hp := 100.0
@@ -16,11 +26,23 @@ var projectile_speed := 260.0
 var projectile_count := 1.0
 var pierce := 0.0
 var attack_range := 200.0
+## Прибавка к скорости атаки всего оружия (0.2 = +20%), её даёт «Поток».
+var attack_speed_bonus := 0.0
+## «Резонанс»: каждый N-й магический снаряд взрывается (0 — навыка нет).
+var resonance_every := 0
+var resonance_radius := 0.0
+## «Мана-щит»: поглощает урон раньше здоровья.
+var shield := 0.0
+var shield_max := 0.0
+## Время забега последнего попадания по герою (для восстановления щита).
+var last_hit_time := 0.0
 
 ## Куда оружие добавляет снаряды.
 var projectile_root: Node
 ## id оружия -> узел Weapon (стартовый снаряд сюда не входит).
 var weapons: Dictionary = {}
+## id навыка -> узел Perk.
+var perks: Dictionary = {}
 var dead := false
 
 var _sprite: AnimatedSprite2D
@@ -33,8 +55,13 @@ func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 0
 	motion_mode = MOTION_MODE_FLOATING
+	if character == null:
+		character = load(DEFAULT_CHARACTER)
+	max_hp = character.max_hp
+	hp = max_hp
+	move_speed = character.move_speed
 
-	_sprite = SpriteLib.make_sprite({&"idle": "wizzard_m_idle_anim", &"run": "wizzard_m_run_anim"})
+	_sprite = SpriteLib.make_sprite({&"idle": character.anim_idle, &"run": character.anim_run})
 	add_child(_sprite)
 	add_child(_circle_shape(CollisionShape2D.new(), 4.0, Vector2(0, -4)))
 
@@ -74,10 +101,32 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	if dead:
 		return
-	hp -= amount
 	_hit_flash = 0.15
-	if hp <= 0.0:
-		_die()
+	_apply_damage(amount)
+
+
+## Множитель скорости атаки: интервалы оружия делятся на него.
+func attack_speed() -> float:
+	return 1.0 + attack_speed_bonus
+
+
+func set_perk(upgrade: UpgradeData, level: int) -> void:
+	var perk: Perk = perks.get(upgrade.perk)
+	if perk == null:
+		match upgrade.perk:
+			&"resonance":
+				perk = ResonancePerk.new()
+			&"mana_shield":
+				perk = ManaShieldPerk.new()
+			&"flow":
+				perk = FlowPerk.new()
+			_:
+				push_error("Неизвестный навык: %s" % upgrade.perk)
+				return
+		perk.player = self
+		perks[upgrade.perk] = perk
+		add_child(perk)
+	perk.set_level(level, upgrade.params_for(level))
 
 
 func heal(amount: float) -> void:
@@ -124,7 +173,23 @@ func _take_contact_damage(delta: float) -> void:
 	_sprite.modulate = Color(1, 0.45, 0.45) if dps > 0.0 or _hit_flash > 0.0 else Color.WHITE
 	if dps <= 0.0:
 		return
-	hp -= dps * delta
+	_apply_damage(dps * delta)
+
+
+## Весь урон по герою проходит здесь: сначала щит, потом здоровье.
+func _apply_damage(amount: float) -> void:
+	last_hit_time = GameState.elapsed
+	if shield > 0.0:
+		var absorbed := minf(shield, amount)
+		shield -= absorbed
+		amount -= absorbed
+		if shield <= 0.0:
+			shield = 0.0
+			shield_broken.emit()
+	if amount <= 0.0:
+		return
+	hp -= amount
+	hp_lost.emit(amount)
 	if hp <= 0.0:
 		_die()
 

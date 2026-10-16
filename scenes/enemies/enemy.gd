@@ -105,6 +105,11 @@ func _try_shoot(delta: float, distance: float) -> void:
 	get_parent().add_child(shot)
 
 
+## Толчок (например, от разрушенного мана-щита).
+func push(impulse: Vector2) -> void:
+	_knockback = impulse
+
+
 ## Центр тела врага (позиция узла — это его ноги).
 func center() -> Vector2:
 	return global_position + Vector2(0, -data.radius)

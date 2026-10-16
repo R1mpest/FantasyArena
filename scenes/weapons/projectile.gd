@@ -7,6 +7,8 @@ var damage := 10.0
 ## Сколько ещё врагов снаряд пробьёт насквозь.
 var pierce := 0
 var lifetime := 1.0
+## Больше нуля — снаряд «Резонанса»: при первом попадании взрывается с этим радиусом.
+var blast_radius := 0.0
 
 var _spent := false
 
@@ -32,6 +34,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if blast_radius > 0.0:
+		draw_circle(Vector2.ZERO, 6.0, Color(0.75, 0.5, 1.0, 0.4))
 	draw_circle(Vector2(-3, 0), 2.0, Color(0.45, 0.7, 1.0, 0.35))
 	draw_circle(Vector2.ZERO, 3.5, Color(0.45, 0.75, 1.0, 0.55))
 	draw_circle(Vector2.ZERO, 2.0, Color(0.9, 0.97, 1.0))
@@ -42,6 +46,14 @@ func _on_body_entered(body: Node2D) -> void:
 	if _spent or enemy == null or enemy.dead:
 		return
 	enemy.take_damage(damage, velocity.normalized())
+	if blast_radius > 0.0:
+		var blast := Blast.new()
+		blast.damage = damage
+		blast.radius = blast_radius
+		blast.position = enemy.center()
+		get_parent().add_child.call_deferred(blast)
+		blast_radius = 0.0
+		queue_redraw()
 	pierce -= 1
 	if pierce < 0:
 		_spent = true

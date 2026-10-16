@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" format=3]
+
+[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/bomb_f0.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"resonance"
+title = "Резонанс"
+description = "Каждый N-й магический снаряд взрывается при попадании"
+icon = ExtResource("2_icon")
+kind = 3
+perk = &"resonance"
+max_level = 3
+weight = 0.9
+level_params = Array[Dictionary]([{"every": 6, "radius": 24.0, "text": "Каждый 6-й магический снаряд взрывается при попадании (радиус 24)"}, {"every": 5, "radius": 24.0, "text": "Взрывается каждый 5-й снаряд"}, {"every": 4, "radius": 32.0, "text": "Взрывается каждый 4-й снаряд, радиус 32"}])
