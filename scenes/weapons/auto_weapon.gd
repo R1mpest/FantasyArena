@@ -1,6 +1,7 @@
 class_name AutoWeapon
 extends Node2D
-## Стартовое оружие «Магический снаряд»: само стреляет в ближайшего врага.
+## Стартовое оружие «Магический снаряд». В режиме «Автоматически» само стреляет
+## в ближайшего врага, в режиме «По мыши» — в сторону курсора (или правого стика геймпада).
 
 ## Угол между снарядами одного залпа, радианы (~12°).
 const SPREAD := 0.21
@@ -18,11 +19,43 @@ func _physics_process(delta: float) -> void:
 	_cooldown -= delta
 	if _cooldown > 0.0:
 		return
-	var target := _nearest_enemy()
-	if target == null:
+	var aim := _aim_direction()
+	if aim == Vector2.ZERO:
 		return
 	_cooldown = player.fire_interval / player.attack_speed()
-	_fire(target)
+	_fire(aim)
+
+
+func _process(_delta: float) -> void:
+	queue_redraw()
+
+
+func _draw() -> void:
+	if SaveManager.aim_mode != SaveManager.AimMode.MOUSE or player.dead:
+		return
+	# Стрелка направления стрельбы вокруг героя.
+	var aim := _manual_aim()
+	var tip := aim * 18.0
+	var side := aim.orthogonal() * 3.0
+	draw_colored_polygon(PackedVector2Array([tip, aim * 12.0 + side, aim * 12.0 - side]), Color(0.85, 0.95, 1.0, 0.8))
+
+
+## Направление выстрела; ZERO — стрелять некуда (в авторежиме нет врага в радиусе).
+func _aim_direction() -> Vector2:
+	if SaveManager.aim_mode == SaveManager.AimMode.MOUSE:
+		return _manual_aim()
+	var target := _nearest_enemy()
+	if target == null:
+		return Vector2.ZERO
+	return global_position.direction_to(target.global_position + Vector2(0, -6))
+
+
+func _manual_aim() -> Vector2:
+	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
+	if stick.length() > 0.35:
+		return stick.normalized()
+	var to_mouse := get_global_mouse_position() - global_position
+	return to_mouse.normalized() if to_mouse.length() > 1.0 else Vector2.RIGHT
 
 
 func _nearest_enemy() -> Enemy:
@@ -39,8 +72,7 @@ func _nearest_enemy() -> Enemy:
 	return best
 
 
-func _fire(target: Enemy) -> void:
-	var aim := global_position.direction_to(target.global_position + Vector2(0, -6))
+func _fire(aim: Vector2) -> void:
 	var count := int(player.projectile_count)
 	for i in count:
 		var projectile := Projectile.new()

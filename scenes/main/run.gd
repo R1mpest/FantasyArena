@@ -50,11 +50,23 @@ func _ready() -> void:
 	var overlay := Overlay.new()
 	overlay.upgrade_system = upgrade_system
 	add_child(overlay)
+	SaveManager.settings_changed.connect(_update_cursor)
+	_update_cursor()
 
 
 func _process(_delta: float) -> void:
 	# Пол — бесконечная плитка: прыгает за игроком на целый период узора.
 	_floor.position = (player.global_position / FloorBuilder.PERIOD).floor() * FloorBuilder.PERIOD
+
+
+func _exit_tree() -> void:
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+
+
+## В режиме прицеливания мышью курсор — перекрестие.
+func _update_cursor() -> void:
+	var mouse := SaveManager.aim_mode == SaveManager.AimMode.MOUSE
+	Input.set_default_cursor_shape(Input.CURSOR_CROSS if mouse else Input.CURSOR_ARROW)
 
 
 func _add_layer(layer_name: String) -> Node2D:

@@ -13,6 +13,7 @@ func _ready() -> void:
 	_test_upgrade_roll()
 	_test_spawn_types()
 	_test_personal_perks()
+	_test_settings()
 	print("ТЕСТЫ: пройдено %d, провалено %d" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -133,6 +134,29 @@ func _test_personal_perks() -> void:
 	_check(not system.is_available(by_id[&"resonance"]), "навык выше 3-го уровня не предлагается")
 	system.free()
 	player.free()
+
+
+func _test_settings() -> void:
+	var path := "user://test_settings.cfg"
+	var saved := [SaveManager.resolution, SaveManager.window_mode, SaveManager.volumes.duplicate(), SaveManager.aim_mode]
+	SaveManager.resolution = Vector2i(1600, 900)
+	SaveManager.window_mode = SaveManager.WindowMode.BORDERLESS
+	SaveManager.volumes[&"Music"] = 0.25
+	SaveManager.aim_mode = SaveManager.AimMode.MOUSE
+	SaveManager.save_to(path)
+	SaveManager.resolution = Vector2i(1280, 720)
+	SaveManager.window_mode = SaveManager.WindowMode.WINDOWED
+	SaveManager.volumes[&"Music"] = 1.0
+	SaveManager.aim_mode = SaveManager.AimMode.AUTO
+	SaveManager.load_from(path)
+	_check(SaveManager.resolution == Vector2i(1600, 900) and SaveManager.window_mode == SaveManager.WindowMode.BORDERLESS, "настройки экрана сохраняются и читаются")
+	_check(is_equal_approx(SaveManager.volumes[&"Music"], 0.25) and SaveManager.aim_mode == SaveManager.AimMode.MOUSE, "громкость и прицеливание сохраняются")
+	_check(AudioServer.get_bus_index(&"Music") != -1 and AudioServer.get_bus_index(&"SFX") != -1, "шины Music и SFX созданы")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	SaveManager.resolution = saved[0]
+	SaveManager.window_mode = saved[1]
+	SaveManager.volumes = saved[2]
+	SaveManager.aim_mode = saved[3]
 
 
 func _check(condition: bool, name: String) -> void:

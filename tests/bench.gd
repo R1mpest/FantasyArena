@@ -27,6 +27,7 @@ func _ready() -> void:
 			_screenshot = arg.get_slice("=", 1)
 		elif arg.begins_with("--seconds="):
 			_seconds = float(arg.get_slice("=", 1))
+	SaveManager.aim_mode = SaveManager.AimMode.AUTO
 	_run = load("res://scenes/main/run.tscn").instantiate()
 	add_child(_run)
 	_spawner = _run.find_children("*", "EnemySpawner", true, false)[0]

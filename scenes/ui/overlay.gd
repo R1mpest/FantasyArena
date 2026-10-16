@@ -14,6 +14,7 @@ var _button: Button
 var _upgrades_view: Control
 var _weapons_column: VBoxContainer
 var _stats_column: VBoxContainer
+var _settings: SettingsPanel
 
 
 func _ready() -> void:
@@ -32,18 +33,26 @@ func _ready() -> void:
 	var upgrades_button := UiKit.button("Улучшения")
 	upgrades_button.pressed.connect(_show_upgrades)
 	box.add_child(upgrades_button)
+	var settings_button := UiKit.button("Настройки")
+	settings_button.pressed.connect(_open_settings)
+	box.add_child(settings_button)
 	var menu_button := UiKit.button("В главное меню")
 	menu_button.pressed.connect(Transition.change_scene.bind(Transition.MENU_SCENE))
 	box.add_child(menu_button)
 	add_child(_root)
 	_root.hide()
 	_build_upgrades_view()
+	_settings = SettingsPanel.new()
+	_settings.closed.connect(_close_settings)
+	add_child(_settings)
 	EventBus.player_died.connect(_show.bind(Mode.DEAD))
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
-		if _upgrades_view.visible:
+		if _settings.is_open():
+			_settings.close()
+		elif _upgrades_view.visible:
 			_hide_upgrades()
 		elif _mode == Mode.NONE and not get_tree().paused:
 			_show(Mode.PAUSE)
@@ -79,6 +88,16 @@ func _on_button_pressed() -> void:
 
 func _restart() -> void:
 	Transition.change_scene(Transition.RUN_SCENE)
+
+
+func _open_settings() -> void:
+	_root.hide()
+	_settings.open()
+
+
+func _close_settings() -> void:
+	_root.show()
+	_button.grab_focus()
 
 
 func _build_upgrades_view() -> void:

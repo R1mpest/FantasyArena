@@ -6,6 +6,7 @@ extends Node
 ## Ключ --give=orbs,meteor,aura выдаёт оружие сразу на старте.
 ## Ключ --seed=N — фиксированный сид случайностей для сравнения прогонов.
 ## Ключ --pause-shot — в конце открыть паузу → «Улучшения» (для скриншота).
+## Ключ --mouse-aim — прицеливание «по мыши» (курсор стоит на месте).
 ## Ключ --god — герой не умирает (для проверки поздней игры).
 ## Ключ --weapons — всегда брать оружие и его прокачку, если они есть среди карт.
 
@@ -49,6 +50,7 @@ func _ready() -> void:
 			_prefer_weapons = true
 		elif arg == "--levelup-shot":
 			_levelup_shot = true
+	SaveManager.aim_mode = SaveManager.AimMode.MOUSE if "--mouse-aim" in OS.get_cmdline_user_args() else SaveManager.AimMode.AUTO
 	_run = load("res://scenes/main/run.tscn").instantiate()
 	add_child(_run)
 	for id in _give:

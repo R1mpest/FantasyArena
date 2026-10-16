@@ -8,6 +8,8 @@ const HEIGHT := 360.0
 ## [спрайт, скорость в пикселях в секунду; знак — направление]
 var _walkers: Array = []
 var _help: Control
+var _settings: SettingsPanel
+var _settings_button: Button
 var _play_button: Button
 
 
@@ -70,6 +72,7 @@ func _build_ui() -> void:
 
 	_play_button = _menu_button(column, "Играть", Transition.change_scene.bind(Transition.RUN_SCENE))
 	_menu_button(column, "Как играть", _toggle_help.bind(true))
+	_settings_button = _menu_button(column, "Настройки", _open_settings)
 	_menu_button(column, "Выход", get_tree().quit)
 	_play_button.grab_focus.call_deferred()
 
@@ -79,7 +82,7 @@ func _build_ui() -> void:
 	box.add_child(UiKit.label("Как играть", 16, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(UiKit.label(
 		"WASD, стрелки или геймпад — движение\n" +
-		"Оружие стреляет само\n" +
+		"Оружие стреляет само: в ближайшего врага\nили по мыши (см. «Настройки»)\n" +
 		"Собирайте кристаллы опыта с врагов\n" +
 		"На новом уровне выберите 1 из 3 карт\n" +
 		"Esc — пауза", 10))
@@ -87,6 +90,9 @@ func _build_ui() -> void:
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	ui.add_child(_help)
 	_help.hide()
+	_settings = SettingsPanel.new()
+	_settings.closed.connect(_settings_button.grab_focus)
+	add_child(_settings)
 
 
 func _menu_button(parent: Control, text: String, action: Callable) -> Button:
@@ -104,7 +110,14 @@ func _toggle_help(visible_now: bool) -> void:
 		_play_button.grab_focus()
 
 
+func _open_settings() -> void:
+	_settings.open()
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if _help.visible and event.is_action_pressed(&"ui_cancel"):
+	if _settings.is_open() and event.is_action_pressed(&"ui_cancel"):
+		_settings.close()
+		get_viewport().set_input_as_handled()
+	elif _help.visible and event.is_action_pressed(&"ui_cancel"):
 		_toggle_help(false)
 		get_viewport().set_input_as_handled()

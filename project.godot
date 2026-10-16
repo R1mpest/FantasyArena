@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
+SaveManager="*res://autoload/save_manager.gd"
 EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 Transition="*res://autoload/transition.gd"
