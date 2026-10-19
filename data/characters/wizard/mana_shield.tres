@@ -13,4 +13,4 @@ kind = 3
 perk = &"mana_shield"
 max_level = 3
 weight = 0.9
-level_params = Array[Dictionary]([{"capacity": 15.0, "restore": 6.0, "knockback": false, "text": "Щит на 15 урона, восстанавливается через 6 с без попаданий"}, {"capacity": 25.0, "restore": 6.0, "knockback": false, "text": "Щит на 25 урона"}, {"capacity": 40.0, "restore": 6.0, "knockback": true, "text": "Щит на 40 урона; при разрушении отбрасывает врагов вокруг"}])
+level_params = Array[Dictionary]([{"capacity": 15.0, "restore": 6.0, "knockback": false, "text": "Щит на 15 урона, восстанавливается через 6 с без попаданий"}, {"capacity": 22.0, "restore": 6.0, "knockback": false, "text": "Щит на 22 урона"}, {"capacity": 30.0, "restore": 6.0, "knockback": true, "text": "Щит на 30 урона; при разрушении отбрасывает врагов вокруг"}])

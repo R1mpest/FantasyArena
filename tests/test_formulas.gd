@@ -122,7 +122,7 @@ func _test_personal_perks() -> void:
 	system.apply(by_id[&"flow"])
 	for i in 15:
 		EventBus.enemy_died.emit(Vector2.ZERO, 1)
-	_check(is_equal_approx(player.attack_speed_bonus, 0.2), "«Поток» ур. 1 упирается в +20%")
+	_check(is_equal_approx(player.attack_speed_bonus, 0.12), "«Поток» ур. 1 упирается в +12%")
 	player.take_damage(1.0)
 	_check(player.attack_speed_bonus == 0.0, "урон по здоровью сбрасывает «Поток»")
 
