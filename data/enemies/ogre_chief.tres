@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scenes/enemies/bosses/ogre_chief.gd" id="2_behaviour"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"ogre_chief"
+display_name = "Огр-вожак"
+anim_run = "big_zombie_run_anim"
+max_hp = 1500.0
+speed = 34.0
+contact_dps = 20.0
+xp = 60
+radius = 11.0
+tier = 3
+is_boss = true
+size_scale = 1.5
+behaviour = ExtResource("2_behaviour")

@@ -100,6 +100,8 @@ func _ready() -> void:
 
 	if character.starting_weapon != null:
 		add_weapon(character.starting_weapon)
+	# После победы враги ещё живы, пока не открылся экран итогов, — герой уже не должен умереть.
+	EventBus.victory.connect(func() -> void: invulnerable_until = INF)
 
 
 func _physics_process(delta: float) -> void:

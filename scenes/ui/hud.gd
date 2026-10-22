@@ -24,6 +24,11 @@ var _weapon_slots: Array[Control] = []
 var _item_slots: Array[Control] = []
 ## Состояние слотов в прошлый раз: перестраиваем иконки, только когда оно меняется.
 var _slots_signature := ""
+var _boss: Enemy
+var _boss_box: Control
+var _boss_name: Label
+var _boss_bar: ProgressBar
+var _banner: Label
 
 
 func _ready() -> void:
@@ -80,6 +85,32 @@ func _ready() -> void:
 	_time_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	root.add_child(_time_label)
 
+	_boss_box = VBoxContainer.new()
+	_boss_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_box.offset_top = 28
+	_boss_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_box.add_theme_constant_override(&"separation", 1)
+	_boss_name = UiKit.label("", 9, HORIZONTAL_ALIGNMENT_CENTER)
+	_boss_name.add_theme_color_override(&"font_color", Color(1, 0.55, 0.45))
+	_boss_box.add_child(_boss_name)
+	_boss_bar = UiKit.bar(Color(0.75, 0.15, 0.2))
+	_boss_bar.custom_minimum_size = Vector2(260, 6)
+	_boss_box.add_child(_boss_bar)
+	root.add_child(_boss_box)
+	_boss_box.hide()
+
+	_banner = UiKit.label("", 16, HORIZONTAL_ALIGNMENT_CENTER)
+	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_banner.offset_top = 70
+	_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_banner.add_theme_color_override(&"font_color", Color(1, 0.4, 0.35))
+	_banner.add_theme_constant_override(&"outline_size", 6)
+	root.add_child(_banner)
+	_banner.hide()
+	EventBus.boss_incoming.connect(_on_boss_incoming)
+	EventBus.boss_spawned.connect(func(boss: Node2D) -> void: _boss = boss as Enemy)
+
 	_level_label = _right_label(root, 10, 8)
 	_level_label.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4))
 	_kills_label = _right_label(root, 9, 22)
@@ -101,6 +132,26 @@ func _process(_delta: float) -> void:
 	_time_label.text = GameState.format_time()
 	_kills_label.text = "Убито: %d" % GameState.kills
 	_update_slots()
+	_update_boss()
+
+
+func _update_boss() -> void:
+	var alive := is_instance_valid(_boss) and not _boss.dead
+	_boss_box.visible = alive
+	if alive:
+		_boss_name.text = _boss.data.display_name
+		_boss_bar.max_value = _boss.full_hp
+		_boss_bar.value = _boss.hp
+
+
+func _on_boss_incoming(title: String) -> void:
+	_banner.text = "Босс приближается: %s" % title
+	_banner.modulate.a = 1.0
+	_banner.show()
+	var fade := create_tween()
+	fade.tween_interval(2.5)
+	fade.tween_property(_banner, "modulate:a", 0.0, 0.5)
+	fade.tween_callback(_banner.hide)
 
 
 func _update_slots() -> void:

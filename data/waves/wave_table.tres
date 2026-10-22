@@ -1,8 +1,210 @@
-[gd_resource type="Resource" script_class="WaveTable" format=3]
+[gd_resource type="Resource" script_class="WaveTable" format=3 uid="uid://cbf6e4clxhpqa"]
 
-[ext_resource type="Script" path="res://data/wave_table.gd" id="1_table"]
+[ext_resource type="Script" uid="uid://68tiqirj0831" path="res://data/wave_table.gd" id="1_table"]
 
 [resource]
 script = ExtResource("1_table")
-minutes = Array[Dictionary]([{"enemies": {"goblin": 3, "skelet": 1}, "interval": 1.0, "batch": 1, "limit": 40, "elite": 0.0}, {"enemies": {"goblin": 3, "skelet": 2}, "interval": 0.9, "batch": 1, "limit": 50, "elite": 0.0}, {"enemies": {"goblin": 2, "skelet": 2, "tiny_zombie": 1.5}, "interval": 0.85, "batch": 2, "limit": 60, "elite": 0.0}, {"enemies": {"goblin": 2, "skelet": 2, "tiny_zombie": 1, "orc_shaman": 0.6, "ogre": 0.4}, "interval": 0.8, "batch": 2, "limit": 80, "elite": 0.0}, {"enemies": {"goblin": 2, "skelet": 2, "tiny_zombie": 1, "orc_shaman": 0.6, "ogre": 0.4, "pumpkin_dude": 0.8}, "interval": 0.8, "batch": 2, "limit": 90, "elite": 0.03}, {"enemies": {"goblin": 1.5, "skelet": 2, "tiny_zombie": 1.5, "orc_shaman": 0.6, "ogre": 0.5, "pumpkin_dude": 0.8}, "interval": 0.75, "batch": 3, "limit": 100, "elite": 0.04}, {"enemies": {"goblin": 1, "skelet": 2, "tiny_zombie": 2, "orc_warrior": 1.5, "orc_shaman": 0.7, "ogre": 0.5, "pumpkin_dude": 1}, "interval": 0.7, "batch": 3, "limit": 120, "elite": 0.05}, {"enemies": {"goblin": 1, "skelet": 1.5, "tiny_zombie": 2, "orc_warrior": 2, "orc_shaman": 0.7, "ogre": 0.5, "pumpkin_dude": 1}, "interval": 0.65, "batch": 3, "limit": 140, "elite": 0.06}, {"enemies": {"skelet": 1.5, "tiny_zombie": 2, "orc_warrior": 2, "masked_orc": 1, "orc_shaman": 0.7, "ogre": 0.6, "pumpkin_dude": 1}, "interval": 0.6, "batch": 3, "limit": 160, "elite": 0.065}, {"enemies": {"skelet": 1, "tiny_zombie": 2, "orc_warrior": 2, "masked_orc": 1.5, "orc_shaman": 0.8, "ogre": 0.6, "pumpkin_dude": 1.2}, "interval": 0.55, "batch": 4, "limit": 180, "elite": 0.07}, {"enemies": {"chort": 1.5, "tiny_zombie": 2, "orc_warrior": 2, "masked_orc": 1.5, "orc_shaman": 0.8, "ogre": 0.6, "pumpkin_dude": 1.2}, "interval": 0.5, "batch": 4, "limit": 200, "elite": 0.08}, {"enemies": {"chort": 2, "tiny_zombie": 2, "orc_warrior": 1.5, "masked_orc": 2, "orc_shaman": 0.8, "ogre": 0.7, "pumpkin_dude": 1.2}, "interval": 0.5, "batch": 4, "limit": 220, "elite": 0.085}, {"enemies": {"chort": 2, "imp": 2, "orc_warrior": 1.5, "masked_orc": 2, "orc_shaman": 0.8, "ogre": 0.7, "pumpkin_dude": 1.4}, "interval": 0.45, "batch": 5, "limit": 240, "elite": 0.09}, {"enemies": {"chort": 2, "imp": 2.5, "orc_warrior": 1.5, "masked_orc": 2, "orc_shaman": 1, "ogre": 0.8, "pumpkin_dude": 1.4}, "interval": 0.4, "batch": 5, "limit": 270, "elite": 0.095}, {"enemies": {"chort": 2, "imp": 3, "orc_warrior": 1.5, "masked_orc": 2.5, "orc_shaman": 1, "ogre": 0.8, "pumpkin_dude": 1.5}, "interval": 0.4, "batch": 5, "limit": 300, "elite": 0.1}])
-bosses = Array[Dictionary]([])
+minutes = Array[Dictionary]([{
+"batch": 1,
+"elite": 0.0,
+"enemies": {
+"goblin": 3,
+"skelet": 1
+},
+"interval": 1.0,
+"limit": 40
+}, {
+"batch": 1,
+"elite": 0.0,
+"enemies": {
+"goblin": 3,
+"skelet": 2
+},
+"interval": 0.9,
+"limit": 50
+}, {
+"batch": 2,
+"elite": 0.0,
+"enemies": {
+"goblin": 2,
+"skelet": 2,
+"tiny_zombie": 1.5
+},
+"interval": 0.85,
+"limit": 60
+}, {
+"batch": 2,
+"elite": 0.0,
+"enemies": {
+"goblin": 2,
+"ogre": 0.4,
+"orc_shaman": 0.6,
+"skelet": 2,
+"tiny_zombie": 1
+},
+"interval": 0.8,
+"limit": 80
+}, {
+"batch": 2,
+"elite": 0.03,
+"enemies": {
+"goblin": 2,
+"ogre": 0.4,
+"orc_shaman": 0.6,
+"pumpkin_dude": 0.8,
+"skelet": 2,
+"tiny_zombie": 1
+},
+"interval": 0.8,
+"limit": 90
+}, {
+"batch": 3,
+"elite": 0.04,
+"enemies": {
+"goblin": 1.5,
+"ogre": 0.5,
+"orc_shaman": 0.6,
+"pumpkin_dude": 0.8,
+"skelet": 2,
+"tiny_zombie": 1.5
+},
+"interval": 0.75,
+"limit": 100
+}, {
+"batch": 3,
+"elite": 0.05,
+"enemies": {
+"goblin": 1,
+"ogre": 0.5,
+"orc_shaman": 0.7,
+"orc_warrior": 1.5,
+"pumpkin_dude": 1,
+"skelet": 2,
+"tiny_zombie": 2
+},
+"interval": 0.7,
+"limit": 120
+}, {
+"batch": 3,
+"elite": 0.06,
+"enemies": {
+"goblin": 1,
+"ogre": 0.5,
+"orc_shaman": 0.7,
+"orc_warrior": 2,
+"pumpkin_dude": 1,
+"skelet": 1.5,
+"tiny_zombie": 2
+},
+"interval": 0.65,
+"limit": 140
+}, {
+"batch": 3,
+"elite": 0.065,
+"enemies": {
+"masked_orc": 1,
+"ogre": 0.6,
+"orc_shaman": 0.7,
+"orc_warrior": 2,
+"pumpkin_dude": 1,
+"skelet": 1.5,
+"tiny_zombie": 2
+},
+"interval": 0.6,
+"limit": 160
+}, {
+"batch": 4,
+"elite": 0.07,
+"enemies": {
+"masked_orc": 1.5,
+"ogre": 0.6,
+"orc_shaman": 0.8,
+"orc_warrior": 2,
+"pumpkin_dude": 1.2,
+"skelet": 1,
+"tiny_zombie": 2
+},
+"interval": 0.55,
+"limit": 180
+}, {
+"batch": 4,
+"elite": 0.08,
+"enemies": {
+"chort": 1.5,
+"masked_orc": 1.5,
+"ogre": 0.6,
+"orc_shaman": 0.8,
+"orc_warrior": 2,
+"pumpkin_dude": 1.2,
+"tiny_zombie": 2
+},
+"interval": 0.5,
+"limit": 200
+}, {
+"batch": 4,
+"elite": 0.085,
+"enemies": {
+"chort": 2,
+"masked_orc": 2,
+"ogre": 0.7,
+"orc_shaman": 0.8,
+"orc_warrior": 1.5,
+"pumpkin_dude": 1.2,
+"tiny_zombie": 2
+},
+"interval": 0.5,
+"limit": 220
+}, {
+"batch": 5,
+"elite": 0.09,
+"enemies": {
+"chort": 2,
+"imp": 2,
+"masked_orc": 2,
+"ogre": 0.7,
+"orc_shaman": 0.8,
+"orc_warrior": 1.5,
+"pumpkin_dude": 1.4
+},
+"interval": 0.45,
+"limit": 240
+}, {
+"batch": 5,
+"elite": 0.095,
+"enemies": {
+"chort": 2,
+"imp": 2.5,
+"masked_orc": 2,
+"ogre": 0.8,
+"orc_shaman": 1,
+"orc_warrior": 1.5,
+"pumpkin_dude": 1.4
+},
+"interval": 0.4,
+"limit": 270
+}, {
+"batch": 5,
+"elite": 0.1,
+"enemies": {
+"chort": 2,
+"imp": 3,
+"masked_orc": 2.5,
+"ogre": 0.8,
+"orc_shaman": 1,
+"orc_warrior": 1.5,
+"pumpkin_dude": 1.5
+},
+"interval": 0.4,
+"limit": 300
+}])
+bosses = Array[Dictionary]([{
+"enemy": "ogre_chief",
+"time": 300.0
+}, {
+"enemy": "necromancer",
+"time": 600.0
+}, {
+"enemy": "big_demon",
+"final": true,
+"time": 900.0
+}])

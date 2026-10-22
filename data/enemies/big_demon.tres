@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scenes/enemies/bosses/demon_boss.gd" id="2_behaviour"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"big_demon"
+display_name = "Большой демон"
+anim_run = "big_demon_run_anim"
+max_hp = 10000.0
+speed = 36.0
+contact_dps = 25.0
+xp = 0
+radius = 12.0
+tier = 3
+is_boss = true
+size_scale = 1.7
+behaviour = ExtResource("2_behaviour")

@@ -11,6 +11,7 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(func(_pos: Vector2, _xp: int) -> void: kills += 1)
 	EventBus.level_up.connect(func(new_level: int) -> void: level = new_level)
 	EventBus.player_died.connect(func() -> void: running = false)
+	EventBus.victory.connect(func() -> void: running = false)
 
 
 func _process(delta: float) -> void:

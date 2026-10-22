@@ -3,7 +3,10 @@ extends CanvasLayer
 ## Пауза (Esc), экран поражения со статистикой и список взятых улучшений.
 ## Раскладка как в HoloCure: слева панель героя с итоговыми характеристиками, по центру меню.
 
-enum Mode { NONE, PAUSE, DEAD }
+enum Mode { NONE, PAUSE, DEAD, VICTORY }
+
+## Пауза перед экраном победы, чтобы было видно, как падает финальный босс.
+const VICTORY_DELAY := 1.5
 
 var upgrade_system: UpgradeSystem
 
@@ -50,6 +53,9 @@ func _ready() -> void:
 	_settings.closed.connect(_close_settings)
 	add_child(_settings)
 	EventBus.player_died.connect(_show.bind(Mode.DEAD))
+	EventBus.victory.connect(func() -> void:
+		await get_tree().create_timer(VICTORY_DELAY).timeout
+		_show(Mode.VICTORY))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -63,14 +69,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _mode == Mode.PAUSE:
 			_hide()
 		get_viewport().set_input_as_handled()
-	elif _mode == Mode.DEAD and event is InputEventKey and event.pressed and event.physical_keycode == KEY_R:
+	elif _mode in [Mode.DEAD, Mode.VICTORY] and event is InputEventKey and event.pressed and event.physical_keycode == KEY_R:
 		_restart()
 
 
 func _show(mode: Mode) -> void:
 	_mode = mode
 	get_tree().paused = true
-	_title.text = "Пауза" if mode == Mode.PAUSE else "Поражение"
+	_title.text = {Mode.PAUSE: "Пауза", Mode.DEAD: "Поражение", Mode.VICTORY: "Победа!"}[mode]
+	_title.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4) if mode == Mode.VICTORY else Color.WHITE)
 	_button.text = "Продолжить (Esc)" if mode == Mode.PAUSE else "Заново (R)"
 	_stats.text = "Время: %s\nУровень: %d\nУбито: %d" % [GameState.format_time(), GameState.level, GameState.kills]
 	_update_hero_stats()

@@ -16,6 +16,7 @@ func _ready() -> void:
 	_test_arcane_mark()
 	_test_new_weapons()
 	_test_elites()
+	_test_bosses()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -299,6 +300,55 @@ func _test_elites() -> void:
 	elite.free()
 	if is_instance_valid(pumpkin):
 		pumpkin.free()
+	_free_build(build)
+
+
+func _test_bosses() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var spawner := EnemySpawner.new()
+	spawner.player = player
+	var arena := Node2D.new()
+	add_child(arena)
+	spawner.enemies_root = arena
+	add_child(spawner)
+	var events := []
+	var on_incoming := func(title: String) -> void: events.append(title)
+	var on_victory := func() -> void: events.append("победа")
+	EventBus.boss_incoming.connect(on_incoming)
+	EventBus.victory.connect(on_victory)
+	var saved_time := GameState.elapsed
+	var saved_running := GameState.running
+	GameState.running = true
+
+	GameState.elapsed = 297.5
+	spawner.check_bosses()
+	_check(events == ["Огр-вожак"] and get_tree().get_node_count_in_group(&"bosses") == 0, "за 3 с до 5:00 — предупреждение, босса ещё нет")
+	GameState.elapsed = 300.0
+	spawner.check_bosses()
+	var ogre: Boss = get_tree().get_first_node_in_group(&"bosses")
+	_check(ogre is OgreChief and ogre.hp == 1500.0, "на 5:00 появляется Огр-вожак с 1500 ОЗ")
+	ogre.freeze(1.0)
+	ogre.push(Vector2(500, 0))
+	_check(not ogre.is_frozen() and ogre._knockback == Vector2.ZERO, "босс не замерзает и не отбрасывается")
+	ogre.take_damage(5000.0)
+	_check(not events.has("победа"), "обычный босс — не победа")
+
+	var demon: Boss = spawner.spawn_boss(&"big_demon", true)
+	demon.take_damage(demon.hp * 0.6)
+	demon._boss_process(0.016)
+	_check(demon is DemonBoss and (demon as DemonBoss).enraged, "демон ниже 50% ОЗ входит во вторую фазу")
+	demon.take_damage(demon.hp + 1.0)
+	_check(events.has("победа") and not GameState.running, "убит финальный босс — победа")
+
+	EventBus.boss_incoming.disconnect(on_incoming)
+	EventBus.victory.disconnect(on_victory)
+	GameState.elapsed = saved_time
+	GameState.running = saved_running
+	for node in get_tree().get_nodes_in_group(&"enemies"):
+		node.free()
+	spawner.free()
+	arena.free()
 	_free_build(build)
 
 

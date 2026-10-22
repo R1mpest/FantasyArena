@@ -29,6 +29,9 @@ var _last_usec := 0
 var _peak_enemies := 0
 var _peak_ranged := 0
 var _peak_by_type: Dictionary = {}
+var _victory := false
+var _victory_wait := 0.0
+var _bosses_killed: PackedStringArray = []
 
 
 func _ready() -> void:
@@ -51,6 +54,9 @@ func _ready() -> void:
 		elif arg == "--levelup-shot":
 			_levelup_shot = true
 	SaveManager.aim_mode = SaveManager.AimMode.MOUSE if "--mouse-aim" in OS.get_cmdline_user_args() else SaveManager.AimMode.AUTO
+	EventBus.victory.connect(func() -> void: _victory = true)
+	EventBus.boss_defeated.connect(func(boss: Node2D, _final: bool) -> void:
+		_bosses_killed.append("%s на %s" % [(boss as Enemy).data.id, GameState.format_time()]))
 	_run = load("res://scenes/main/run.tscn").instantiate()
 	add_child(_run)
 	for id in _give:
@@ -88,10 +94,19 @@ func _process(delta: float) -> void:
 	var now := Time.get_ticks_usec()
 	if _last_usec > 0 and GameState.elapsed > 5.0:
 		var ms := (now - _last_usec) / 1000.0
+		if ms > 100.0:
+			print("AUTOPLAY медленный кадр %.0f мс на %s: врагов=%d боссов=%d снарядов=%d" % [ms, GameState.format_time(),
+				get_tree().get_node_count_in_group(&"enemies"), get_tree().get_node_count_in_group(&"bosses"), _run.player.projectile_root.get_child_count()])
 		_frame_ms_max = maxf(_frame_ms_max, ms)
 		_frame_ms_sum += ms
 		_frames += 1
 	_last_usec = now
+	if _victory:
+		# Даём экрану победы появиться (он открывается с задержкой).
+		_victory_wait += delta
+		if _victory_wait > 2.0:
+			_finish()
+		return
 	if GameState.elapsed >= _seconds or not GameState.running:
 		_finish()
 
@@ -120,6 +135,7 @@ func _finish() -> void:
 		GameState.format_time(), not player.dead, GameState.level, GameState.kills,
 		player.hp, player.max_hp, _peak_enemies, _peak_ranged, _picks, _frame_ms_sum / maxi(_frames, 1), _frame_ms_max])
 	print("AUTOPLAY получено_урона=%.0f" % _damage_taken)
+	print("AUTOPLAY победа=%s боссы=%s" % [_victory, ", ".join(_bosses_killed)])
 	var alive := {}
 	for id in _peak_by_type:
 		alive[id] = get_tree().get_node_count_in_group(StringName("enemy_" + id))

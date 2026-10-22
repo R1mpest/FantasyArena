@@ -10,3 +10,11 @@ signal xp_collected(amount: int)
 signal level_up(level: int)
 @warning_ignore("unused_signal")
 signal player_died
+@warning_ignore("unused_signal")
+signal boss_incoming(title: String)
+@warning_ignore("unused_signal")
+signal boss_spawned(boss: Node2D)
+@warning_ignore("unused_signal")
+signal boss_defeated(boss: Node2D, final: bool)
+@warning_ignore("unused_signal")
+signal victory

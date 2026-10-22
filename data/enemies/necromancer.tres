@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scenes/enemies/bosses/necromancer_boss.gd" id="2_behaviour"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"necromancer"
+display_name = "Некромант"
+anim_run = "necromancer_anim"
+max_hp = 4000.0
+speed = 30.0
+contact_dps = 15.0
+xp = 120
+radius = 7.0
+tier = 3
+is_boss = true
+size_scale = 1.7
+behaviour = ExtResource("2_behaviour")

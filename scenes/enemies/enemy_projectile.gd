@@ -6,6 +6,7 @@ const LIFETIME := 3.5
 
 var velocity := Vector2.ZERO
 var damage := 8.0
+var color := Color(0.45, 0.95, 0.3)
 
 var _time := 0.0
 
@@ -33,9 +34,9 @@ func _physics_process(delta: float) -> void:
 
 func _draw() -> void:
 	var pulse := 1.0 + 0.15 * sin(_time * 14.0)
-	draw_circle(Vector2.ZERO, 6.0 * pulse, Color(0.5, 1.0, 0.3, 0.25))
-	draw_circle(Vector2.ZERO, 3.5, Color(0.45, 0.95, 0.3))
-	draw_circle(Vector2.ZERO, 1.8, Color(0.9, 1.0, 0.8))
+	draw_circle(Vector2.ZERO, 6.0 * pulse, Color(color, 0.25))
+	draw_circle(Vector2.ZERO, 3.5, color)
+	draw_circle(Vector2.ZERO, 1.8, color.lightened(0.7))
 
 
 func _on_body_entered(body: Node2D) -> void:

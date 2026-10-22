@@ -36,6 +36,8 @@ var respawn_radius := 400.0
 var grid: EnemyGrid
 
 var hp := 1.0
+## Здоровье при появлении (для полосы здоровья босса).
+var full_hp := 1.0
 var contact_dps := 0.0
 var dead := false
 
@@ -76,8 +78,11 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 0
 	_frame = randi() % SEPARATION_EVERY
-	hp = data.max_hp * k
+	# Здоровье боссов задано в данных как есть, без k(t), чтобы бой было проще настроить.
+	hp = data.max_hp if data.is_boss else data.max_hp * k
 	contact_dps = data.contact_dps
+	if data.size_scale != 1.0:
+		scale = Vector2.ONE * data.size_scale
 
 	_sprite = SpriteLib.make_sprite({&"run": data.anim_run})
 	add_child(_sprite)
@@ -85,6 +90,7 @@ func _ready() -> void:
 	if elite:
 		_make_elite()
 	set_process(elite)
+	full_hp = hp
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = data.radius
@@ -95,6 +101,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_tick_flash(delta)
+	_tick_status(delta)
 	if _frozen_time > 0.0:
 		_frozen_time -= delta
 		if _frozen_time <= 0.0:
@@ -118,6 +125,14 @@ func _physics_process(delta: float) -> void:
 	_frame += 1
 	if grid != null and _frame % SEPARATION_EVERY == 0:
 		_separation = grid.separation(self)
+	velocity = move * data.speed * _speed_mult * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
+	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
+	global_position += velocity * delta
+	_sprite.flip_h = direction.x < 0.0
+
+
+## Таймеры метки и замедления (общие для обычных врагов и боссов).
+func _tick_status(delta: float) -> void:
 	if _marked_until > 0.0 and GameState.elapsed >= _marked_until:
 		_marked_until = 0.0
 		queue_redraw()
@@ -125,10 +140,6 @@ func _physics_process(delta: float) -> void:
 		_slow_time -= delta
 		if _slow_time <= 0.0:
 			_slow = 0.0
-	velocity = move * data.speed * _speed_mult * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
-	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
-	global_position += velocity * delta
-	_sprite.flip_h = direction.x < 0.0
 
 
 func _tick_flash(delta: float) -> void:
@@ -209,7 +220,8 @@ func is_cursed() -> bool:
 
 ## Толчок (например, от разрушенного мана-щита).
 func push(impulse: Vector2) -> void:
-	_knockback = impulse
+	if not data.is_boss:
+		_knockback = impulse
 
 
 func is_marked() -> bool:
@@ -267,11 +279,16 @@ static func outline_material() -> ShaderMaterial:
 	return _outline_material
 
 
+## Для наследников (боссы): вызывается при смерти от урона.
+func _on_death() -> void:
+	pass
+
+
 func _make_elite() -> void:
 	hp *= ELITE_HP
 	contact_dps *= ELITE_DAMAGE
 	_speed_mult = ELITE_SPEED
-	scale = Vector2.ONE * ELITE_SCALE
+	scale *= ELITE_SCALE
 	_sprite.material = outline_material()
 	add_to_group(&"elites")
 
@@ -340,7 +357,8 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 	if is_cursed():
 		amount *= 1.0 + _curse_bonus
 	hp -= amount
-	_knockback = from_direction * KNOCKBACK
+	if not data.is_boss:
+		_knockback = from_direction * KNOCKBACK
 	_flash_time = 0.08
 	_sprite.modulate = Color(1, 0.35, 0.35)
 	if hp <= 0.0:
@@ -348,4 +366,5 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 		_spread_mark()
 		_curse_explode()
 		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp * (ELITE_XP if elite else 1), GameState.minutes()))
+		_on_death()
 		queue_free()

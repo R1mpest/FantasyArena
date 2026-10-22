@@ -3,10 +3,13 @@ extends Node
 ## Спавн волн по таблице (data/waves/wave_table.tres): на каждой минуте свой пул
 ## врагов с весами, пауза между волнами, размер волны, лимит на арене и шанс элиты.
 ## Точка появления — случайная на кольце за краем экрана.
+## Боссы — по времени из таблицы: за 3 с предупреждение, пока босс жив, волны вдвое реже.
 
 const ENEMIES_DIR := "res://data/enemies/"
 const WAVE_TABLE := "res://data/waves/wave_table.tres"
 const MAX_ENEMIES := 300
+const BOSS_WARNING := 3.0
+const BOSS_SPAWN_SLOWDOWN := 2.0
 
 var player: Player
 ## Куда добавлять врагов (слой с y-сортировкой).
@@ -17,6 +20,9 @@ var table: WaveTable
 var _types: Dictionary = {}
 var _grid := EnemyGrid.new()
 var _timer := 1.0
+## Индекс следующего босса в таблице и последнего, о котором уже предупредили.
+var _next_boss := 0
+var _warned := -1
 
 
 func _ready() -> void:
@@ -35,12 +41,15 @@ func type_of(id: StringName) -> EnemyData:
 func _process(delta: float) -> void:
 	if not GameState.running:
 		return
+	check_bosses()
 	_timer -= delta
 	if _timer > 0.0:
 		return
 	var minutes := GameState.minutes()
 	var segment := table.segment_at(minutes)
 	_timer = float(segment["interval"])
+	if get_tree().get_node_count_in_group(&"bosses") > 0:
+		_timer *= BOSS_SPAWN_SLOWDOWN
 	var limit := mini(int(segment["limit"]), MAX_ENEMIES)
 	var in_wave: Dictionary = {}
 	for i in int(segment["batch"]):
@@ -64,7 +73,36 @@ func _spawn_group(type: EnemyData, minutes: float, elite: bool, limit: int) -> v
 		_spawn(type, minutes, elite and i == 0, at + offset)
 
 
+## Предупреждает о боссе за BOSS_WARNING секунд и выпускает его в срок.
+func check_bosses() -> void:
+	if _next_boss >= table.bosses.size():
+		return
+	var entry: Dictionary = table.bosses[_next_boss]
+	var time := float(entry["time"])
+	if _warned < _next_boss and GameState.elapsed >= time - BOSS_WARNING:
+		_warned = _next_boss
+		EventBus.boss_incoming.emit(type_of(StringName(entry["enemy"])).display_name)
+	if GameState.elapsed >= time:
+		_next_boss += 1
+		spawn_boss(StringName(entry["enemy"]), entry.get("final", false))
+
+
+func spawn_boss(id: StringName, final: bool) -> Boss:
+	var at := player.global_position + Vector2.from_angle(randf() * TAU) * _ring_radius() * 0.6
+	var boss: Boss = _make(type_of(id), GameState.minutes(), false, at)
+	boss.spawner = self
+	boss.final = final
+	enemies_root.add_child(boss)
+	return boss
+
+
 func _spawn(type: EnemyData, minutes: float, elite: bool = false, at: Vector2 = Vector2.INF) -> Enemy:
+	var enemy := _make(type, minutes, elite, at)
+	enemies_root.add_child(enemy)
+	return enemy
+
+
+func _make(type: EnemyData, minutes: float, elite: bool, at: Vector2) -> Enemy:
 	var enemy: Enemy = type.behaviour.new() if type.behaviour != null else Enemy.new()
 	enemy.data = type
 	enemy.k = Formulas.difficulty(minutes)
@@ -73,7 +111,6 @@ func _spawn(type: EnemyData, minutes: float, elite: bool = false, at: Vector2 = 
 	enemy.grid = _grid
 	enemy.respawn_radius = _ring_radius()
 	enemy.position = at if at != Vector2.INF else player.global_position + Vector2.from_angle(randf() * TAU) * enemy.respawn_radius
-	enemies_root.add_child(enemy)
 	return enemy
 
 

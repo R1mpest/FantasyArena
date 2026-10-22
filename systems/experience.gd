@@ -18,6 +18,9 @@ func _ready() -> void:
 
 
 func add_xp(amount: int) -> void:
+	# После победы или поражения опыт не начисляется (иначе окно выбора карт откроется поверх итогов).
+	if not GameState.running:
+		return
 	xp += amount
 	while xp >= to_next:
 		xp -= to_next
