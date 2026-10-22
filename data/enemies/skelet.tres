@@ -12,6 +12,4 @@ speed = 42.0
 contact_dps = 8.0
 xp = 2
 radius = 5.0
-from_minute = 0.5
-weight = 2.0
 tier = 1

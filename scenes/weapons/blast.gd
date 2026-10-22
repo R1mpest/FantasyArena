@@ -14,6 +14,8 @@ var _time := 0.0
 
 func _ready() -> void:
 	z_index = 1
+	if damage <= 0.0:
+		return
 	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
 		enemy.take_damage(damage, global_position.direction_to(enemy.center()), source)
 

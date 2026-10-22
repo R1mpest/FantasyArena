@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"chort"
+display_name = "Чёрт"
+anim_run = "chort_run_anim"
+max_hp = 18.0
+speed = 70.0
+contact_dps = 8.0
+xp = 2
+radius = 5.0
+tier = 1

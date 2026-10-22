@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"imp"
+display_name = "Бесёнок"
+anim_run = "imp_run_anim"
+max_hp = 10.0
+speed = 75.0
+contact_dps = 6.0
+xp = 1
+radius = 4.0
+tier = 1
+group_size = 4

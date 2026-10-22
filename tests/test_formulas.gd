@@ -15,6 +15,7 @@ func _ready() -> void:
 	_test_style_items()
 	_test_arcane_mark()
 	_test_new_weapons()
+	_test_elites()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -23,9 +24,9 @@ func _ready() -> void:
 
 
 func _test_xp() -> void:
-	_check(Formulas.xp_to_next(1) == 15, "XP(1) = 15")
-	_check(Formulas.xp_to_next(3) == 35, "XP(3) = 35")
-	_check(Formulas.xp_to_next(10) == 168, "XP(10) = 168")
+	_check(Formulas.xp_to_next(1) == 16, "XP(1) = 16")
+	_check(Formulas.xp_to_next(3) == 41, "XP(3) = 41")
+	_check(Formulas.xp_to_next(10) == 199, "XP(10) = 199")
 	var growing := true
 	for level in range(1, 100):
 		growing = growing and Formulas.xp_to_next(level + 1) > Formulas.xp_to_next(level)
@@ -34,16 +35,24 @@ func _test_xp() -> void:
 
 func _test_difficulty() -> void:
 	_check(is_equal_approx(Formulas.difficulty(0.0), 1.0), "k(0) = 1")
-	_check(is_equal_approx(Formulas.difficulty(10.0), 2.2), "k(10) = 2.2")
-	_check(is_equal_approx(Formulas.difficulty(15.0), 3.1), "k(15) = 3.1")
+	_check(is_equal_approx(Formulas.difficulty(10.0), 1.4), "k(10) = 1,4")
+	_check(is_equal_approx(Formulas.difficulty(15.0), 1.6), "k(15) = 1,6")
+	_check(is_equal_approx(Formulas.xp_multiplier(15.0), 1.0) and Formulas.xp_drop(6, 10.0) == 6, "опыт с врага не растёт со временем: темп задаёт XP(L)")
 
 
 func _test_spawn() -> void:
+	var table: WaveTable = load("res://data/waves/wave_table.tres")
+	_check(table.minutes.size() == 15, "в таблице волн 15 минут")
 	var ok := true
-	for minute in range(0, 31):
-		ok = ok and Formulas.spawn_interval(minute) >= 0.35 and Formulas.spawn_batch(minute) >= 1
-	_check(ok, "интервал спавна не меньше 0.35 с, волна не пустая")
-	_check(Formulas.xp_drop(1, 0.0) == 1 and Formulas.xp_drop(6, 10.0) == 13, "опыт с врага растёт по k(t)")
+	var ids := {}
+	for file in ResourceLoader.list_directory("res://data/enemies/"):
+		if file.ends_with(".tres"):
+			ids[String((load("res://data/enemies/" + file) as EnemyData).id)] = true
+	for segment in table.minutes:
+		ok = ok and float(segment["interval"]) >= 0.35 and int(segment["batch"]) >= 1 and int(segment["limit"]) <= 300
+		for id in segment["enemies"]:
+			ok = ok and ids.has(id)
+	_check(ok, "таблица волн: разумные интервалы и лимиты, все враги существуют")
 
 
 ## Игрок и система прокачки в дереве сцены, как в забеге.
@@ -191,7 +200,7 @@ func _test_style_items() -> void:
 	spawner.player = player
 	add_child(spawner)
 	player.mods[&"tier_upgrade_chance"] = 1.0
-	var goblin: EnemyData = spawner._types.filter(func(t: EnemyData) -> bool: return t.id == &"goblin")[0]
+	var goblin: EnemyData = spawner.type_of(&"goblin")
 	_check(spawner._upgrade_tier(goblin, 4.0, {}).tier > 1, "Идол: мелочь заменяется врагом ступени выше")
 	_check(spawner._upgrade_tier(goblin, 0.0, {}) == goblin, "в первые минуты заменять не на кого")
 	spawner.free()
@@ -265,6 +274,31 @@ func _test_new_weapons() -> void:
 	_check(skull_weapon.extra_projectiles() == 0, "без Колчана один череп")
 	for enemy in enemies:
 		enemy.free()
+	_free_build(build)
+
+
+func _test_elites() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var normal := _spawn_test_enemy(player, "orc_warrior", Vector2(300, 0))
+	var elite := Enemy.new()
+	elite.data = normal.data
+	elite.elite = true
+	elite.target = player
+	elite.position = Vector2(-300, 0)
+	add_child(elite)
+	_check(is_equal_approx(elite.hp, normal.hp * 3.0) and elite.scale.x > 1.0, "элитный: ×3 здоровья и крупнее")
+	_check(elite.is_in_group(&"elites") and elite._sprite.material != null, "элитный в группе elites и с контуром")
+	var pumpkin := _spawn_test_enemy(player, "pumpkin_dude", player.global_position + Vector2(10, 0))
+	pumpkin._physics_process(0.016)
+	_check(pumpkin._fuse > 0.0, "взрывной у героя поджигает фитиль")
+	var hp_before := player.hp
+	pumpkin._physics_process(1.0)
+	_check(pumpkin.dead and player.hp < hp_before, "взрыв ранит героя")
+	normal.free()
+	elite.free()
+	if is_instance_valid(pumpkin):
+		pumpkin.free()
 	_free_build(build)
 
 

@@ -1,6 +1,7 @@
 class_name EnemyData
 extends Resource
-## Параметры типа врага. Значения — базовые, на k(t) умножаются здоровье и урон.
+## Параметры типа врага. На k(t) умножается только здоровье; когда и как часто тип
+## появляется, задаёт таблица волн (data/waves/wave_table.tres).
 
 @export var id: StringName
 @export var display_name: String
@@ -12,14 +13,17 @@ extends Resource
 @export var contact_dps: float = 10.0
 @export var xp: int = 1
 @export var radius: float = 5.0
-## С какой минуты забега тип начинает появляться.
-@export var from_minute: float = 0.0
-## Вес при случайном выборе типа.
-@export var weight: float = 1.0
 ## Ступень: 1 — мелочь, 2 — средние, 3 — огры и элита. Проклятый идол заменяет ступень 1 на более высокую.
 @export var tier: int = 1
 ## Босс: не замерзает (только замедляется), Проклятый череп целится в него первым.
 @export var is_boss := false
+## Рой: столько врагов появляется вместе в одной точке.
+@export var group_size: int = 1
+## Взрывной враг: подбегает к герою, через короткую задержку взрывается (урон герою) и исчезает.
+@export var explode_damage: float = 0.0
+@export var explode_radius: float = 0.0
+## Своё поведение (скрипт-наследник Enemy) — для боссов.
+@export var behaviour: Script
 ## Сколько врагов этого типа может быть на арене одновременно (0 — без ограничения).
 @export var max_alive: int = 0
 ## Сколько врагов этого типа может появиться за одну волну (0 — без ограничения).

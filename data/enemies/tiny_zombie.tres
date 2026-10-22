@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"tiny_zombie"
+display_name = "Зомби-малыш"
+anim_run = "tiny_zombie_run_anim"
+max_hp = 6.0
+speed = 64.0
+contact_dps = 4.0
+xp = 1
+radius = 4.0
+tier = 1
+group_size = 5

@@ -1,6 +1,7 @@
 class_name Enemy
 extends CharacterBody2D
 ## Враг: идёт к игроку, наносит урон касанием, при смерти шлёт enemy_died.
+## Элитный — крупнее, сильнее, с золотым контуром. Взрывной подбегает и взрывается.
 ## Стрелок (data.attack_range > 0) держит дистанцию и кидает медленные снаряды.
 
 const KNOCKBACK := 70.0
@@ -13,11 +14,22 @@ const MARK_SOURCES := 3
 const MARK_WINDOW := 2.0
 const MARK_TIME := 4.0
 const MARK_SPREAD_RADIUS := 40.0
+const ELITE_HP := 3.0
+const ELITE_DAMAGE := 1.25
+const ELITE_SPEED := 1.1
+const ELITE_SCALE := 1.3
+const ELITE_XP := 5
+const FUSE_TIME := 0.6
+const OUTLINE := preload("res://assets/shaders/outline.gdshader")
+
+static var _outline_material: ShaderMaterial
 
 var data: EnemyData
 ## Множитель сложности k(t) на момент появления.
 var k := 1.0
 var target: Node2D
+## Элитная версия: задаёт спавнер до добавления в сцену.
+var elite := false
 ## Если враг отстал дальше этого расстояния, он переносится ближе к игроку.
 var respawn_radius := 400.0
 ## Сетка для расталкивания; без неё враги проходят друг сквозь друга.
@@ -47,6 +59,9 @@ var _curse_bonus := 0.0
 var _curse_until := 0.0
 var _curse_blast := 0.0
 var _curse_blast_radius := 0.0
+var _speed_mult := 1.0
+## Взрывной враг: сколько осталось до взрыва (меньше нуля — фитиль не горит).
+var _fuse := -1.0
 
 
 func _ready() -> void:
@@ -62,11 +77,14 @@ func _ready() -> void:
 	collision_mask = 0
 	_frame = randi() % SEPARATION_EVERY
 	hp = data.max_hp * k
-	contact_dps = data.contact_dps * k
+	contact_dps = data.contact_dps
 
 	_sprite = SpriteLib.make_sprite({&"run": data.anim_run})
 	add_child(_sprite)
 	_head_y = -_sprite.sprite_frames.get_frame_texture(&"run", 0).get_size().y - 4.0
+	if elite:
+		_make_elite()
+	set_process(elite)
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = data.radius
@@ -82,8 +100,14 @@ func _physics_process(delta: float) -> void:
 		if _frozen_time <= 0.0:
 			_sprite.play()
 		return
+	if _fuse >= 0.0:
+		_burn_fuse(delta)
+		return
 	var to_target := target.global_position - global_position
-	if to_target.length_squared() > respawn_radius * respawn_radius * 2.25:
+	if data.explode_damage > 0.0 and to_target.length() < data.radius + 14.0:
+		_fuse = FUSE_TIME
+		return
+	if not data.is_boss and to_target.length_squared() > respawn_radius * respawn_radius * 2.25:
 		global_position = target.global_position + Vector2.from_angle(randf() * TAU) * respawn_radius
 		return
 	var direction := to_target.normalized()
@@ -101,7 +125,7 @@ func _physics_process(delta: float) -> void:
 		_slow_time -= delta
 		if _slow_time <= 0.0:
 			_slow = 0.0
-	velocity = move * data.speed * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
+	velocity = move * data.speed * _speed_mult * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
 	global_position += velocity * delta
 	_sprite.flip_h = direction.x < 0.0
@@ -147,7 +171,7 @@ func _try_shoot(delta: float, distance: float) -> void:
 	var shot := EnemyProjectile.new()
 	shot.position = center()
 	shot.velocity = center().direction_to(target.global_position + Vector2(0, -10)) * data.shot_speed
-	shot.damage = data.shot_damage * k
+	shot.damage = data.shot_damage * (ELITE_DAMAGE if elite else 1.0)
 	get_parent().add_child(shot)
 
 
@@ -235,7 +259,55 @@ func _spread_mark() -> void:
 		enemy.mark()
 
 
+## Общий материал контура для всех элитных врагов.
+static func outline_material() -> ShaderMaterial:
+	if _outline_material == null:
+		_outline_material = ShaderMaterial.new()
+		_outline_material.shader = OUTLINE
+	return _outline_material
+
+
+func _make_elite() -> void:
+	hp *= ELITE_HP
+	contact_dps *= ELITE_DAMAGE
+	_speed_mult = ELITE_SPEED
+	scale = Vector2.ONE * ELITE_SCALE
+	_sprite.material = outline_material()
+	add_to_group(&"elites")
+
+
+## Фитиль взрывного врага: мигает, стоит на месте, потом взрывается и исчезает без опыта.
+func _burn_fuse(delta: float) -> void:
+	_fuse -= delta
+	_sprite.modulate = Color(1, 0.4, 0.3) if int(_fuse * 20.0) % 2 == 0 else Color.WHITE
+	queue_redraw()
+	if _fuse > 0.0 or dead:
+		return
+	dead = true
+	var player := target as Player
+	var radius := data.explode_radius * scale.x
+	if player != null and player.global_position.distance_to(center()) <= radius + 6.0:
+		player.take_damage(data.explode_damage * (ELITE_DAMAGE if elite else 1.0))
+	var blast := Blast.new()
+	blast.damage = 0.0
+	blast.radius = radius
+	blast.color = Color(1.0, 0.55, 0.2)
+	blast.position = center()
+	get_parent().add_child.call_deferred(blast)
+	queue_free()
+
+
+func _process(_delta: float) -> void:
+	if elite:
+		queue_redraw()
+
+
 func _draw() -> void:
+	if elite:
+		var pulse := 0.5 + 0.5 * sin(GameState.elapsed * 6.0)
+		draw_arc(Vector2.ZERO, data.radius + 3.0, 0.0, TAU, 24, Color(1.0, 0.8, 0.3, 0.4 + 0.4 * pulse), 1.0)
+	if _fuse >= 0.0:
+		draw_arc(center() - global_position, data.explode_radius, 0.0, TAU, 32, Color(1.0, 0.4, 0.2, 0.7), 1.0)
 	if not is_marked():
 		return
 	var top := Vector2(0, _head_y)
@@ -275,5 +347,5 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 		dead = true
 		_spread_mark()
 		_curse_explode()
-		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp, GameState.minutes()))
+		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp * (ELITE_XP if elite else 1), GameState.minutes()))
 		queue_free()

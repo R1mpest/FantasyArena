@@ -54,11 +54,24 @@ func _ready() -> void:
 	add_child(overlay)
 	SaveManager.settings_changed.connect(_update_cursor)
 	_update_cursor()
+	_warm_up_shaders(entities)
 
 
 func _process(_delta: float) -> void:
 	# Пол — бесконечная плитка: прыгает за игроком на целый период узора.
 	_floor.position = (player.global_position / FloorBuilder.PERIOD).floor() * FloorBuilder.PERIOD
+
+
+## Шейдер контура элиты компилируется при первой отрисовке — это давало рывок кадра
+## на сотни миллисекунд. Рисуем его один раз в начале забега почти прозрачным спрайтом.
+func _warm_up_shaders(parent: Node2D) -> void:
+	var sprite := Sprite2D.new()
+	sprite.texture = SpriteLib.texture("skull")
+	sprite.material = Enemy.outline_material()
+	sprite.self_modulate.a = 0.01
+	sprite.position = player.position
+	parent.add_child(sprite)
+	get_tree().create_timer(0.5).timeout.connect(sprite.queue_free)
 
 
 func _exit_tree() -> void:

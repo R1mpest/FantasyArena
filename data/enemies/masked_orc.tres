@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://data/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"masked_orc"
+display_name = "Орк в маске"
+anim_run = "masked_orc_run_anim"
+max_hp = 60.0
+speed = 52.0
+contact_dps = 14.0
+xp = 4
+radius = 6.0
+tier = 2
