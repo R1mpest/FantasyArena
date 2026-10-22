@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/custom/lightning.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/chain_lightning_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"chain_lightning"
+title = "Цепная молния"
+description = "Молния бьёт врага и перескакивает на соседних"
+icon = ExtResource("2_icon")
+pool = 0
+weapon_script = ExtResource("3_script")
+uses_quiver = true
+levels = Array[Dictionary]([{"damage": 20.0, "jumps": 3.0, "interval": 1.8, "falloff": 0.1, "text": "20 урона, 3 перескока, раз в 1,8 с; каждый перескок −10% урона"}, {"jumps": 5.0, "text": "+2 перескока"}, {"damage": 26.0, "text": "+30% урона"}, {"interval": 1.44, "text": "−20% перезарядки"}, {"jumps": 7.0, "falloff": 0.0, "text": "+2 перескока, урон при перескоке не падает"}])

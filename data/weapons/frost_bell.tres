@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/custom/bell.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/frost_bell_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"frost_bell"
+title = "Морозный колокол"
+description = "Волна холода вокруг героя ранит и замедляет врагов"
+icon = ExtResource("2_icon")
+pool = 1
+weapon_script = ExtResource("3_script")
+uses_quiver = false
+levels = Array[Dictionary]([{"damage": 6.0, "radius": 70.0, "interval": 4.0, "slow": 0.3, "slow_time": 2.0, "freeze": 0.0, "text": "Раз в 4 с волна холода: радиус 70, 6 урона, замедление 30% на 2 с"}, {"radius": 84.0, "text": "+20% радиуса"}, {"damage": 12.0, "slow": 0.4, "text": "Замедление 40%, урон ×2"}, {"interval": 3.0, "text": "−25% перезарядки"}, {"freeze": 1.0, "text": "Враги замерзают на 1 с (боссов только замедляет)"}])

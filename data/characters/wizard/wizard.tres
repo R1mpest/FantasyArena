@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://data/weapons/magic_bolt.tres" id="6_bolt"]
 [ext_resource type="Resource" path="res://data/weapons/meteor.tres" id="7_meteor"]
 [ext_resource type="Resource" path="res://data/characters/wizard/arcane_mark.tres" id="8_mark"]
+[ext_resource type="Resource" path="res://data/weapons/chain_lightning.tres" id="9_chain"]
 
 [resource]
 script = ExtResource("1_character")
@@ -18,5 +19,5 @@ anim_run = "wizzard_m_run_anim"
 max_hp = 100.0
 move_speed = 85.0
 starting_weapon = ExtResource("6_bolt")
-class_weapons = Array[ExtResource("3_weapon")]([ExtResource("6_bolt"), ExtResource("7_meteor")])
+class_weapons = Array[ExtResource("3_weapon")]([ExtResource("6_bolt"), ExtResource("7_meteor"), ExtResource("9_chain")])
 skills = Array[ExtResource("2_skill")]([ExtResource("8_mark"), ExtResource("4_shield"), ExtResource("5_flow")])

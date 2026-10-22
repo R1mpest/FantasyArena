@@ -41,6 +41,12 @@ var _slow_time := 0.0
 var _hits: Dictionary = {}
 var _marked_until := 0.0
 var _head_y := -16.0
+var _frozen_time := 0.0
+## Проклятие (Проклятый череп): прибавка к получаемому урону, до какого времени и урон взрыва при смерти.
+var _curse_bonus := 0.0
+var _curse_until := 0.0
+var _curse_blast := 0.0
+var _curse_blast_radius := 0.0
 
 
 func _ready() -> void:
@@ -70,6 +76,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_tick_flash(delta)
+	if _frozen_time > 0.0:
+		_frozen_time -= delta
+		if _frozen_time <= 0.0:
+			_sprite.play()
+		return
 	var to_target := target.global_position - global_position
 	if to_target.length_squared() > respawn_radius * respawn_radius * 2.25:
 		global_position = target.global_position + Vector2.from_angle(randf() * TAU) * respawn_radius
@@ -94,10 +106,24 @@ func _physics_process(delta: float) -> void:
 	global_position += velocity * delta
 	_sprite.flip_h = direction.x < 0.0
 
+
+func _tick_flash(delta: float) -> void:
 	if _flash_time > 0.0:
 		_flash_time -= delta
-		if _flash_time <= 0.0:
-			_sprite.modulate = Color.WHITE
+		if _flash_time > 0.0:
+			return
+	_sprite.modulate = _state_color()
+
+
+## Цвет врага по состоянию: замёрз, замедлен, проклят или обычный.
+func _state_color() -> Color:
+	if _frozen_time > 0.0:
+		return Color(0.55, 0.8, 1.0)
+	if _slow_time > 0.0:
+		return Color(0.75, 0.9, 1.0)
+	if GameState.elapsed < _curse_until:
+		return Color(0.8, 0.55, 0.95)
+	return Color.WHITE
 
 
 func is_ranged() -> bool:
@@ -132,6 +158,31 @@ func apply_slow(amount: float, duration: float) -> void:
 	_slow_time = maxf(_slow_time, duration)
 
 
+## Заморозка: враг стоит на месте duration секунд. Боссов только замедляет.
+func freeze(duration: float) -> void:
+	if data.is_boss:
+		apply_slow(0.5, duration)
+		return
+	_frozen_time = maxf(_frozen_time, duration)
+	_sprite.pause()
+
+
+func is_frozen() -> bool:
+	return _frozen_time > 0.0
+
+
+## Проклятие: враг получает на bonus больше урона; blast > 0 — при смерти взрывается.
+func curse(bonus: float, duration: float, blast: float = 0.0, blast_radius: float = 0.0) -> void:
+	_curse_bonus = maxf(_curse_bonus if is_cursed() else 0.0, bonus)
+	_curse_until = GameState.elapsed + duration
+	_curse_blast = maxf(_curse_blast, blast)
+	_curse_blast_radius = maxf(_curse_blast_radius, blast_radius)
+
+
+func is_cursed() -> bool:
+	return GameState.elapsed < _curse_until
+
+
 ## Толчок (например, от разрушенного мана-щита).
 func push(impulse: Vector2) -> void:
 	_knockback = impulse
@@ -162,6 +213,18 @@ func _arcane_multiplier(source: StringName) -> float:
 		if recent >= MARK_SOURCES:
 			mark()
 	return 1.0 + player.arcane_bonus if is_marked() else 1.0
+
+
+func _curse_explode() -> void:
+	if not is_cursed() or _curse_blast <= 0.0:
+		return
+	var blast := Blast.new()
+	blast.damage = _curse_blast
+	blast.radius = _curse_blast_radius
+	blast.color = Color(0.7, 0.35, 0.9)
+	blast.source = &"cursed_skull"
+	blast.position = center()
+	get_parent().add_child.call_deferred(blast)
 
 
 func _spread_mark() -> void:
@@ -202,6 +265,8 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 	if dead:
 		return
 	amount *= _arcane_multiplier(source)
+	if is_cursed():
+		amount *= 1.0 + _curse_bonus
 	hp -= amount
 	_knockback = from_direction * KNOCKBACK
 	_flash_time = 0.08
@@ -209,5 +274,6 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 	if hp <= 0.0:
 		dead = true
 		_spread_mark()
+		_curse_explode()
 		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp, GameState.minutes()))
 		queue_free()

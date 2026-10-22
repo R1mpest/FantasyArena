@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/skull.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/cursed_skull_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"cursed_skull"
+title = "Проклятый череп"
+description = "Череп летит в самого живучего врага и проклинает его"
+icon = ExtResource("2_icon")
+pool = 1
+weapon_script = ExtResource("3_script")
+uses_quiver = true
+levels = Array[Dictionary]([{"damage": 40.0, "interval": 3.0, "curse": 0.15, "curse_time": 4.0, "explode": false, "text": "Раз в 3 с череп летит в самого живучего врага: 40 урона, проклятие +15% получаемого урона на 4 с"}, {"damage": 52.0, "text": "+30% урона"}, {"curse": 0.25, "text": "Проклятие: +25% получаемого урона"}, {"interval": 2.4, "text": "−20% перезарядки"}, {"explode": true, "text": "Проклятый враг при смерти взрывается"}])

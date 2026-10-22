@@ -14,6 +14,7 @@ func _ready() -> void:
 	_test_weapon_levels()
 	_test_style_items()
 	_test_arcane_mark()
+	_test_new_weapons()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -68,7 +69,7 @@ func _test_upgrade_roll() -> void:
 	var player: Player = build[0]
 	var system: UpgradeSystem = build[1]
 	_check(player.weapon_level(&"magic_bolt") == 1, "стартовое оружие на 1-м уровне")
-	_check(system.weapons.size() == 4 and system.items.size() == 15 and system.skills.size() == 3, "4 оружия, 15 предметов, 3 навыка")
+	_check(system.weapons.size() == 7 and system.items.size() == 15 and system.skills.size() == 3, "7 видов оружия (3 классовых), 15 предметов, 3 навыка")
 	var special := system.roll(10)
 	_check(special.size() == 3 and special.all(func(o: CardOffer) -> bool: return o.is_style_item()), "на 10-м уровне — 3 предмета, меняющих стиль")
 
@@ -214,6 +215,61 @@ func _test_arcane_mark() -> void:
 	_check(enemy.is_marked() and is_equal_approx(hp_before - enemy.hp, 2.0 + 12.0), "третье оружие вешает метку: +20% урона")
 	enemy.free()
 	_free_build(build)
+
+
+func _spawn_test_enemy(player: Player, id: String, at: Vector2) -> Enemy:
+	var enemy := Enemy.new()
+	enemy.data = load("res://data/enemies/%s.tres" % id)
+	enemy.target = player
+	enemy.position = at
+	add_child(enemy)
+	return enemy
+
+
+func _test_new_weapons() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	var enemies: Array[Enemy] = []
+	for i in 4:
+		enemies.append(_spawn_test_enemy(player, "ogre", player.global_position + Vector2(40 + 30 * i, 0)))
+
+	system.give(&"chain_lightning")
+	var chain: ChainLightningWeapon = player.weapons[&"chain_lightning"]
+	chain._cooldown = 0.0
+	chain._physics_process(0.016)
+	var hit_count := enemies.filter(func(e: Enemy) -> bool: return e.hp < e.data.max_hp).size()
+	_check(hit_count == 4, "молния перескакивает по 4 врагам (3 перескока)")
+	_check(enemies[1].hp > enemies[0].hp, "каждый перескок слабее")
+
+	system.give(&"frost_bell")
+	for i in 4:
+		system.give(&"frost_bell")
+	var bell: FrostBellWeapon = player.weapons[&"frost_bell"]
+	bell._cooldown = 0.0
+	bell._physics_process(0.016)
+	_check(enemies[0].is_frozen(), "колокол ур. 5 замораживает")
+
+	for enemy in enemies:
+		enemy.hp = enemy.data.max_hp
+	enemies[2].hp = enemy_hp_boost(enemies[2])
+	system.give(&"cursed_skull")
+	var skull_weapon: CursedSkullWeapon = player.weapons[&"cursed_skull"]
+	var sorted := enemies.duplicate()
+	sorted.sort_custom(CursedSkullWeapon._tougher)
+	_check(sorted[0] == enemies[2], "череп выбирает самого живучего")
+	enemies[2].curse(0.25, 4.0)
+	var before := enemies[2].hp
+	enemies[2].take_damage(10.0, Vector2.ZERO, &"test")
+	_check(is_equal_approx(before - enemies[2].hp, 12.5), "проклятый враг получает +25% урона")
+	_check(skull_weapon.extra_projectiles() == 0, "без Колчана один череп")
+	for enemy in enemies:
+		enemy.free()
+	_free_build(build)
+
+
+func enemy_hp_boost(enemy: Enemy) -> float:
+	return enemy.data.max_hp * 2.0
 
 
 func _test_spawn_types() -> void:
