@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
-[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_spear.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/sprites/kyrise/boots_01c.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_data")
@@ -11,4 +11,4 @@ icon = ExtResource("2_icon")
 kind = 1
 weight = 1.0
 excludes = Array[StringName]([])
-levels = Array[Dictionary]([{"step": 120.0, "damage": 25.0, "text": "Каждые 120 px пути — молния в ближайшего врага (25 урона)\nЦена: стоишь на месте — ничего не происходит"}, {"step": 100.0, "damage": 25.0, "text": "Молния каждые 100 px пути"}, {"step": 80.0, "damage": 25.0, "text": "Молния каждые 80 px пути"}])
+levels = Array[Dictionary]([{"step": 120.0, "damage": 25.0, "text": "Каждые 120 px пути — молния в ближайшего врага, 25 урона\nЦена: на месте не работает"}, {"step": 100.0, "damage": 25.0, "text": "Молния каждые 100 px пути"}, {"step": 80.0, "damage": 25.0, "text": "Молния каждые 80 px пути"}])

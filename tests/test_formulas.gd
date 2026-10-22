@@ -17,6 +17,7 @@ func _ready() -> void:
 	_test_new_weapons()
 	_test_elites()
 	_test_bosses()
+	_test_magnet()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -349,6 +350,24 @@ func _test_bosses() -> void:
 		node.free()
 	spawner.free()
 	arena.free()
+	_free_build(build)
+
+
+func _test_magnet() -> void:
+	var build := _new_build()
+	var gems: Array[XpGem] = []
+	for i in 3:
+		var gem := XpGem.new()
+		gem.position = Vector2(500 + 100 * i, 300)
+		add_child(gem)
+		gems.append(gem)
+	_check(not gems.any(func(g: XpGem) -> bool: return g._attracted), "далёкий опыт сам не летит")
+	var magnet := MagnetCrystal.new()
+	add_child(magnet)
+	magnet.collect()
+	_check(gems.all(func(g: XpGem) -> bool: return g._attracted), "кристалл-магнит притягивает весь опыт на полу")
+	for gem in gems:
+		gem.free()
 	_free_build(build)
 
 

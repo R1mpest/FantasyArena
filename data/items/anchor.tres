@@ -11,4 +11,4 @@ icon = ExtResource("2_icon")
 kind = 1
 weight = 1.0
 excludes = Array[StringName]([])
-levels = Array[Dictionary]([{"move_speed_mult": 0.9, "anchor_might": 1.25, "anchor_guard": 0.8, "text": "Стоишь дольше 2 с: урон +25%, получаемый урон −20%\nЦена: скорость бега −10%, движение сбрасывает таймер"}, {"move_speed_mult": 0.9, "anchor_might": 1.4, "anchor_guard": 0.8, "text": "На месте: урон +40%"}, {"move_speed_mult": 0.9, "anchor_might": 1.6, "anchor_guard": 0.8, "text": "На месте: урон +60%"}])
+levels = Array[Dictionary]([{"move_speed_mult": 0.9, "anchor_might": 1.25, "anchor_guard": 0.8, "text": "Стоишь дольше 2 с: урон +25%, получаемый урон −20%\nЦена: бег −10%, движение сбрасывает"}, {"move_speed_mult": 0.9, "anchor_might": 1.4, "anchor_guard": 0.8, "text": "На месте: урон +40%"}, {"move_speed_mult": 0.9, "anchor_might": 1.6, "anchor_guard": 0.8, "text": "На месте: урон +60%"}])

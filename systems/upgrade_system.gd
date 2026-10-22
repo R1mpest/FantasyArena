@@ -208,7 +208,7 @@ func _heal_offer(fraction: float, text: String) -> CardOffer:
 	offer.amount = fraction
 	offer.title = "Лечение"
 	offer.description = text
-	offer.icon = SpriteLib.texture("flask_big_red")
+	offer.icon = preload("res://assets/sprites/kyrise/potion_03b.png")
 	return offer
 
 

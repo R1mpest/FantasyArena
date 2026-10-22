@@ -58,7 +58,9 @@ func setup(card_offer: CardOffer, hotkey: int) -> void:
 		level_text = "Ур. %d / %d" % [offer.level, offer.max_level]
 	column.add_child(_colored(UiKit.label(level_text, 9, HORIZONTAL_ALIGNMENT_CENTER), Color(1, 0.9, 0.6)))
 
-	var description := UiKit.label(offer.description, 9, HORIZONTAL_ALIGNMENT_CENTER)
+	# Длинный текст — мельче шрифт, чтобы карта не переполнялась.
+	var length := offer.description.length() + offer.warning.length()
+	var description := UiKit.label(offer.description, 9 if length <= 95 else (8 if length <= 125 else 7), HORIZONTAL_ALIGNMENT_CENTER)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(description)

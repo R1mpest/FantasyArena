@@ -8,9 +8,9 @@
 script = ExtResource("1_data")
 id = &"frost_bell"
 title = "Морозный колокол"
-description = "Волна холода вокруг героя ранит и замедляет врагов"
+description = "Волна холода ранит и замедляет врагов вокруг"
 icon = ExtResource("2_icon")
 pool = 1
 weapon_script = ExtResource("3_script")
 uses_quiver = false
-levels = Array[Dictionary]([{"damage": 6.0, "radius": 70.0, "interval": 4.0, "slow": 0.3, "slow_time": 2.0, "freeze": 0.0, "text": "Раз в 4 с волна холода: радиус 70, 6 урона, замедление 30% на 2 с"}, {"radius": 84.0, "text": "+20% радиуса"}, {"damage": 12.0, "slow": 0.4, "text": "Замедление 40%, урон ×2"}, {"interval": 3.0, "text": "−25% перезарядки"}, {"freeze": 1.0, "text": "Враги замерзают на 1 с (боссов только замедляет)"}])
+levels = Array[Dictionary]([{"damage": 6.0, "radius": 70.0, "interval": 4.0, "slow": 0.3, "slow_time": 2.0, "freeze": 0.0, "text": "Раз в 4 с: радиус 70, 6 урона, замедление 30% на 2 с"}, {"radius": 84.0, "text": "+20% радиуса"}, {"damage": 12.0, "slow": 0.4, "text": "Замедление 40%, урон ×2"}, {"interval": 3.0, "text": "−25% перезарядки"}, {"freeze": 1.0, "text": "Враги замерзают на 1 с (боссов только замедляет)"}])

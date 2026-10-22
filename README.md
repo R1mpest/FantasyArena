@@ -55,7 +55,7 @@ godot -e --path .     # редактор
 | `scenes/` | главное меню, сцена забега, игрок, враги, оружие, кристаллы опыта, интерфейс и карты прокачки |
 | `systems/` | спавн волн, опыт, выбор улучшений, формулы баланса |
 | `data/` | баланс в ресурсах `.tres`: враги, оружие (5 уровней), предметы, персонажи и их навыки правятся без изменения кода |
-| `assets/` | спрайты 0x72 DungeonTileset II (CC0), лицензии в `assets/LICENSES.md` |
+| `assets/` | спрайты 0x72 DungeonTileset II (CC0), иконки Kyrise (CC BY 4.0), свои иконки; лицензии в `assets/LICENSES.md` |
 | `tests/` | модульные тесты формул и автопрогон забега |
 
 ## Проверки
@@ -77,3 +77,8 @@ godot --headless --fixed-fps 60 --path . res://tests/bench.tscn -- --enemies=300
 
 Снимок главного меню: `godot --path . res://tests/menu_shot.tscn -- --screenshot=menu.png`.
 CI (`.gitea/workflows/ci.yml`) запускает обе проверки на каждый push.
+
+## Авторы ассетов
+
+- 0x72 — DungeonTileset II (CC0)
+- Kyrise — Kyrise's Free 16x16 RPG Icon Pack (CC BY 4.0), https://kyrise.itch.io/

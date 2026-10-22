@@ -3,6 +3,9 @@ extends Node
 ## Опыт: роняет кристаллы с убитых врагов, считает уровень по XP(L).
 
 ## Куда класть кристаллы.
+## Шанс, что с врага вместе с опытом выпадет кристалл-магнит.
+const MAGNET_CHANCE := 0.01
+
 var pickups_root: Node2D
 ## Нужен для множителя опыта (Проклятый идол); без героя опыт не меняется.
 var player: Player
@@ -34,3 +37,7 @@ func _on_enemy_died(at: Vector2, value: int) -> void:
 	gem.value = roundi(value * player.mods[&"xp_mult"]) if player != null else value
 	gem.position = at + Vector2(0, -4)
 	pickups_root.add_child.call_deferred(gem)
+	if randf() < MAGNET_CHANCE:
+		var magnet := MagnetCrystal.new()
+		magnet.position = at + Vector2(6, -4)
+		pickups_root.add_child.call_deferred(magnet)

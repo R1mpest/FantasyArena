@@ -10,7 +10,14 @@ var _speed := 0.0
 
 
 func _ready() -> void:
+	add_to_group(&"xp_gems")
 	_player = get_tree().get_first_node_in_group(&"player") as Player
+
+
+## Летит к герою, где бы ни лежал (кристалл-магнит).
+func attract() -> void:
+	_attracted = true
+	_speed = maxf(_speed, 250.0)
 
 
 func _process(delta: float) -> void:
