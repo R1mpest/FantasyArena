@@ -12,6 +12,8 @@ func _ready() -> void:
 	_test_spawn()
 	_test_upgrade_roll()
 	_test_weapon_levels()
+	_test_style_items()
+	_test_arcane_mark()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -66,7 +68,9 @@ func _test_upgrade_roll() -> void:
 	var player: Player = build[0]
 	var system: UpgradeSystem = build[1]
 	_check(player.weapon_level(&"magic_bolt") == 1, "стартовое оружие на 1-м уровне")
-	_check(system.weapons.size() == 4 and system.items.size() == 9 and system.skills.size() == 2, "4 оружия, 9 предметов, 2 навыка")
+	_check(system.weapons.size() == 4 and system.items.size() == 15 and system.skills.size() == 3, "4 оружия, 15 предметов, 3 навыка")
+	var special := system.roll(10)
+	_check(special.size() == 3 and special.all(func(o: CardOffer) -> bool: return o.is_style_item()), "на 10-м уровне — 3 предмета, меняющих стиль")
 
 	var skill_later := false
 	var distinct := true
@@ -125,6 +129,90 @@ func _test_weapon_levels() -> void:
 	system.give(&"quiver")
 	_check(orbs._orb_offsets().size() == 5, "Колчан добавляет сферу")
 	_check(bolt.extra_projectiles() == 0, "Колчан не действует на стартовый снаряд")
+	_free_build(build)
+
+
+func _test_style_items() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	system.give(&"life_ring")
+	var crystal_offer := system._offer(CardOffer.Kind.ITEM, system.items.filter(func(i: ItemData) -> bool: return i.id == &"blood_crystal")[0])
+	_check(crystal_offer.warning != "", "на карте Кровавого кристалла предупреждение про Кольцо жизни")
+	system.give(&"blood_crystal")
+	_check(player.item_disabled(&"life_ring") and player.regen == 0.0, "Кровавый кристалл отключает Кольцо жизни")
+	player.hp = 50.0
+	player.heal(30.0)
+	_check(player.hp == 50.0, "Кровавый кристалл отключает лечение")
+	EventBus.enemy_died.emit(Vector2.ZERO, 1)
+	_check(is_equal_approx(player.hp, 50.5), "убийство лечит на 0,5")
+	player.hp = 10.0
+	var heal := system.roll(2).any(func(o: CardOffer) -> bool: return o.kind == CardOffer.Kind.HEAL)
+	_check(not heal, "с кристаллом карта лечения не предлагается")
+
+	system.give(&"plate")
+	system.give(&"glass_cannon")
+	_check(is_equal_approx(player.damage_mult(), 1.4), "Стеклянная пушка ур. 1: урон ×1,4")
+	_check(is_equal_approx(player.mods[&"damage_taken_mult"], 1.5 * 0.96), "получаемый урон ×1,5, пластина вполсилы (−4%)")
+	var plate_offered := false
+	for i in 50:
+		for offer in system.roll(2):
+			plate_offered = plate_offered or (offer.data is ItemData and offer.data.id == &"plate" and offer.is_new())
+	_check(not plate_offered, "при пушке пластина не предлагается новой")
+
+	system.give(&"phoenix_feather")
+	system.give(&"phoenix_feather")
+	system.give(&"phoenix_feather")
+	player.hp = 1.0
+	player.take_damage(500.0)
+	_check(not player.dead and is_equal_approx(player.hp, player.max_hp * 0.5), "Перо феникса воскрешает с 50% ОЗ")
+	player.take_damage(500.0)
+	_check(not player.dead, "после воскрешения неуязвимость")
+	_check(not system.candidates(CardOffer.Kind.ITEM).any(func(i: ItemData) -> bool: return i.id == &"phoenix_feather"), "сработавшее перо больше не предлагается")
+	_free_build(build)
+
+	build = _new_build()
+	player = build[0]
+	system = build[1]
+	system.give(&"anchor")
+	var anchor: AnchorEffect = player.item_effects[&"anchor"]
+	_check(is_equal_approx(player.move_speed, 85.0 * 0.9), "Якорь: скорость бега −10%")
+	player.velocity = Vector2.ZERO
+	anchor._physics_process(2.5)
+	_check(is_equal_approx(player.damage_mult(), 1.25), "Якорь: на месте 2 с — урон +25%")
+	player.velocity = Vector2(50, 0)
+	anchor._physics_process(0.1)
+	_check(player.damage_mult() == 1.0, "Якорь: движение сбрасывает бонус")
+
+	system.give(&"cursed_idol")
+	_check(is_equal_approx(player.mods[&"xp_mult"], 1.3) and not system.give(&"cursed_idol"), "Идол: опыт +30%, без уровней")
+	var spawner := EnemySpawner.new()
+	spawner.player = player
+	add_child(spawner)
+	player.mods[&"tier_upgrade_chance"] = 1.0
+	var goblin: EnemyData = spawner._types.filter(func(t: EnemyData) -> bool: return t.id == &"goblin")[0]
+	_check(spawner._upgrade_tier(goblin, 4.0, {}).tier > 1, "Идол: мелочь заменяется врагом ступени выше")
+	_check(spawner._upgrade_tier(goblin, 0.0, {}) == goblin, "в первые минуты заменять не на кого")
+	spawner.free()
+	_free_build(build)
+
+
+func _test_arcane_mark() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	system.give(&"arcane_mark")
+	var enemy := Enemy.new()
+	enemy.data = load("res://data/enemies/ogre.tres")
+	enemy.target = player
+	add_child(enemy)
+	var hp_before := enemy.hp
+	enemy.take_damage(1.0, Vector2.ZERO, &"magic_bolt")
+	enemy.take_damage(1.0, Vector2.ZERO, &"orbs")
+	_check(not enemy.is_marked(), "двух видов оружия мало для метки")
+	enemy.take_damage(10.0, Vector2.ZERO, &"aura")
+	_check(enemy.is_marked() and is_equal_approx(hp_before - enemy.hp, 2.0 + 12.0), "третье оружие вешает метку: +20% урона")
+	enemy.free()
 	_free_build(build)
 
 

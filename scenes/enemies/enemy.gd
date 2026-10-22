@@ -8,6 +8,11 @@ const KNOCKBACK := 70.0
 const SEPARATION_SPEED := 70.0
 ## Расталкивание пересчитывается раз в столько физических кадров (у врагов вразнобой).
 const SEPARATION_EVERY := 5
+## «Арканная метка»: сколько разных видов оружия за какое время её вешают и сколько она держится.
+const MARK_SOURCES := 3
+const MARK_WINDOW := 2.0
+const MARK_TIME := 4.0
+const MARK_SPREAD_RADIUS := 40.0
 
 var data: EnemyData
 ## Множитель сложности k(t) на момент появления.
@@ -32,6 +37,10 @@ var _frame := 0
 ## Замедление: доля снижения скорости и сколько оно ещё длится.
 var _slow := 0.0
 var _slow_time := 0.0
+## id оружия -> время последнего попадания им (для метки).
+var _hits: Dictionary = {}
+var _marked_until := 0.0
+var _head_y := -16.0
 
 
 func _ready() -> void:
@@ -51,6 +60,7 @@ func _ready() -> void:
 
 	_sprite = SpriteLib.make_sprite({&"run": data.anim_run})
 	add_child(_sprite)
+	_head_y = -_sprite.sprite_frames.get_frame_texture(&"run", 0).get_size().y - 4.0
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = data.radius
@@ -72,6 +82,9 @@ func _physics_process(delta: float) -> void:
 	_frame += 1
 	if grid != null and _frame % SEPARATION_EVERY == 0:
 		_separation = grid.separation(self)
+	if _marked_until > 0.0 and GameState.elapsed >= _marked_until:
+		_marked_until = 0.0
+		queue_redraw()
 	if _slow_time > 0.0:
 		_slow_time -= delta
 		if _slow_time <= 0.0:
@@ -124,6 +137,50 @@ func push(impulse: Vector2) -> void:
 	_knockback = impulse
 
 
+func is_marked() -> bool:
+	return GameState.elapsed < _marked_until
+
+
+func mark() -> void:
+	_marked_until = GameState.elapsed + MARK_TIME
+	queue_redraw()
+
+
+## Учитывает попадание для «Арканной метки» и возвращает множитель урона.
+func _arcane_multiplier(source: StringName) -> float:
+	var player := target as Player
+	if player == null or player.arcane_bonus <= 0.0:
+		return 1.0
+	var now := GameState.elapsed
+	if source != &"":
+		_hits[source] = now
+	if not is_marked():
+		var recent := 0
+		for id in _hits:
+			if now - _hits[id] <= MARK_WINDOW:
+				recent += 1
+		if recent >= MARK_SOURCES:
+			mark()
+	return 1.0 + player.arcane_bonus if is_marked() else 1.0
+
+
+func _spread_mark() -> void:
+	var player := target as Player
+	if player == null or not player.arcane_spread or not is_marked():
+		return
+	for enemy in Enemy.in_radius(get_tree(), center(), MARK_SPREAD_RADIUS):
+		enemy.mark()
+
+
+func _draw() -> void:
+	if not is_marked():
+		return
+	var top := Vector2(0, _head_y)
+	var rune := PackedVector2Array([top + Vector2(0, -4), top + Vector2(3, 0), top + Vector2(0, 4), top + Vector2(-3, 0), top + Vector2(0, -4)])
+	draw_polyline(rune, Color(0.8, 0.5, 1.0), 1.5)
+	draw_circle(top, 1.2, Color(0.95, 0.85, 1.0))
+
+
 ## Центр тела врага (позиция узла — это его ноги).
 func center() -> Vector2:
 	return global_position + Vector2(0, -data.radius)
@@ -141,14 +198,16 @@ static func in_radius(tree: SceneTree, at: Vector2, radius: float) -> Array[Enem
 
 
 ## source — id оружия, нанёсшего урон (нужен «Арканной метке»).
-func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, _source: StringName = &"") -> void:
+func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: StringName = &"") -> void:
 	if dead:
 		return
+	amount *= _arcane_multiplier(source)
 	hp -= amount
 	_knockback = from_direction * KNOCKBACK
 	_flash_time = 0.08
 	_sprite.modulate = Color(1, 0.35, 0.35)
 	if hp <= 0.0:
 		dead = true
+		_spread_mark()
 		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp, GameState.minutes()))
 		queue_free()

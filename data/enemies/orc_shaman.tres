@@ -19,3 +19,4 @@ attack_range = 140.0
 shot_damage = 8.0
 shot_interval = 2.8
 shot_speed = 105.0
+tier = 2

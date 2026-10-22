@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_big_hammer.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"anchor"
+title = "Якорь"
+icon = ExtResource("2_icon")
+kind = 1
+weight = 1.0
+excludes = Array[StringName]([])
+levels = Array[Dictionary]([{"move_speed_mult": 0.9, "anchor_might": 1.25, "anchor_guard": 0.8, "text": "Стоишь дольше 2 с: урон +25%, получаемый урон −20%\nЦена: скорость бега −10%, движение сбрасывает таймер"}, {"move_speed_mult": 0.9, "anchor_might": 1.4, "anchor_guard": 0.8, "text": "На месте: урон +40%"}, {"move_speed_mult": 0.9, "anchor_might": 1.6, "anchor_guard": 0.8, "text": "На месте: урон +60%"}])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/skull.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"cursed_idol"
+title = "Проклятый идол"
+icon = ExtResource("2_icon")
+kind = 1
+weight = 1.0
+excludes = Array[StringName]([])
+levels = Array[Dictionary]([{"xp_mult": 1.3, "might": 1.1, "tier_upgrade_chance": 0.25, "text": "Опыт +30%, урон +10%\nЦена: до 25% мелких врагов заменяются более сильными"}])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_bow.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"glass_cannon"
+title = "Стеклянная пушка"
+icon = ExtResource("2_icon")
+kind = 1
+weight = 1.0
+excludes = Array[StringName]([&"plate"])
+levels = Array[Dictionary]([{"might": 1.4, "damage_taken_mult": 1.5, "text": "Урон ×1,4\nЦена: получаемый урон ×1,5"}, {"might": 1.6, "damage_taken_mult": 1.5, "text": "Урон ×1,6"}, {"might": 1.8, "damage_taken_mult": 1.5, "text": "Урон ×1,8"}])

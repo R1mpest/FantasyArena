@@ -33,7 +33,7 @@ func _process(delta: float) -> void:
 	for i in Formulas.spawn_batch(minutes):
 		if get_tree().get_node_count_in_group(&"enemies") >= MAX_ENEMIES:
 			break
-		var type := _pick_type(minutes, in_wave)
+		var type := _upgrade_tier(_pick_type(minutes, in_wave), minutes, in_wave)
 		in_wave[type.id] = in_wave.get(type.id, 0) + 1
 		_spawn(type, minutes)
 
@@ -52,6 +52,16 @@ func _spawn(type: EnemyData, minutes: float) -> void:
 ## Половина диагонали экрана плюс отступ: враг появляется сразу за краем.
 func _ring_radius() -> float:
 	return player.get_viewport_rect().size.length() / 2.0 + 24.0
+
+
+## Проклятый идол: с его шансом враг ступени 1 заменяется врагом ступени выше из текущего пула.
+func _upgrade_tier(type: EnemyData, minutes: float, in_wave: Dictionary) -> EnemyData:
+	var chance: float = player.mods.get(&"tier_upgrade_chance", 0.0)
+	if type.tier != 1 or chance <= 0.0 or randf() >= chance:
+		return type
+	var stronger := _types.filter(func(t: EnemyData) -> bool:
+		return t.tier > 1 and t.from_minute <= minutes and not _at_cap(t, in_wave))
+	return type if stronger.is_empty() else stronger.pick_random()
 
 
 func _at_cap(type: EnemyData, in_wave: Dictionary) -> bool:

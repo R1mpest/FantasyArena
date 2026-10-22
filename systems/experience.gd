@@ -4,6 +4,8 @@ extends Node
 
 ## Куда класть кристаллы.
 var pickups_root: Node2D
+## Нужен для множителя опыта (Проклятый идол); без героя опыт не меняется.
+var player: Player
 
 var level := 1
 var xp := 0
@@ -26,6 +28,6 @@ func add_xp(amount: int) -> void:
 
 func _on_enemy_died(at: Vector2, value: int) -> void:
 	var gem := XpGem.new()
-	gem.value = value
+	gem.value = roundi(value * player.mods[&"xp_mult"]) if player != null else value
 	gem.position = at + Vector2(0, -4)
 	pickups_root.add_child.call_deferred(gem)

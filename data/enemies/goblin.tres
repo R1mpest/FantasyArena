@@ -14,3 +14,4 @@ xp = 1
 radius = 5.0
 from_minute = 0.0
 weight = 3.0
+tier = 1

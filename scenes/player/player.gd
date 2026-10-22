@@ -12,9 +12,20 @@ signal shield_broken
 const DEFAULT_CHARACTER := "res://data/characters/wizard/wizard.tres"
 const BASE_PICKUP_RADIUS := 48.0
 ## Модификаторы предметов: эти перемножаются...
-const MULT_MODS := [&"might", &"cooldown_mult", &"area_mult", &"move_speed_mult", &"pickup_mult", &"damage_taken_mult"]
+const MULT_MODS := [&"might", &"cooldown_mult", &"area_mult", &"move_speed_mult", &"pickup_mult", &"damage_taken_mult", &"xp_mult"]
 ## ...а эти складываются.
-const ADD_MODS := [&"max_hp_bonus", &"regen", &"extra_projectiles"]
+const ADD_MODS := [&"max_hp_bonus", &"regen", &"extra_projectiles", &"tier_upgrade_chance"]
+## Предмет-ключ перестаёт работать, пока взят предмет-значение (Кольцо жизни при Кровавом кристалле).
+const DISABLED_BY := {&"life_ring": &"blood_crystal"}
+## Предмет-ключ работает вполсилы, пока взят предмет-значение (Латная пластина при Стеклянной пушке).
+const HALVED_BY := {&"plate": &"glass_cannon"}
+## Предметы, меняющие стиль, у которых есть своя механика в бою.
+const ITEM_EFFECTS := {
+	&"storm_boots": preload("res://scenes/player/items/storm_boots_effect.gd"),
+	&"anchor": preload("res://scenes/player/items/anchor_effect.gd"),
+	&"blood_crystal": preload("res://scenes/player/items/blood_crystal_effect.gd"),
+	&"phoenix_feather": preload("res://scenes/player/items/phoenix_effect.gd"),
+}
 
 var character: CharacterData
 
@@ -32,6 +43,14 @@ var shield := 0.0
 var shield_max := 0.0
 ## Время забега последнего попадания по герою (для восстановления щита).
 var last_hit_time := 0.0
+## Временные множители от предметов-состояний (Якорь).
+var temp_might := 1.0
+var temp_damage_taken := 1.0
+## До этого времени забега урон по герою не проходит (Перо феникса).
+var invulnerable_until := 0.0
+## «Арканная метка»: прибавка к урону по помеченным врагам и переход метки на соседей.
+var arcane_bonus := 0.0
+var arcane_spread := false
 
 ## Куда оружие добавляет снаряды.
 var projectile_root: Node
@@ -40,6 +59,10 @@ var weapons: Dictionary = {}
 ## id предмета -> уровень; данные предметов — в item_data.
 var items: Dictionary = {}
 var item_data: Dictionary = {}
+## id предмета -> узел ItemEffect (только у предметов со своей механикой).
+var item_effects: Dictionary = {}
+## Сработавшие одноразовые предметы (Перо феникса): слот занят, уровни не предлагаются.
+var spent_items: Dictionary = {}
 ## id навыка -> узел Perk.
 var perks: Dictionary = {}
 var dead := false
@@ -89,8 +112,11 @@ func _physics_process(delta: float) -> void:
 		_sprite.flip_h = direction.x < 0.0
 	_sprite.play(&"run" if direction != Vector2.ZERO else &"idle")
 
-	hp = minf(hp + regen * delta, max_hp)
+	if not healing_blocked():
+		hp = minf(hp + regen * delta, max_hp)
 	_take_contact_damage(delta)
+	if GameState.elapsed < invulnerable_until:
+		_sprite.modulate.a = 0.4 if int(GameState.elapsed * 12.0) % 2 == 0 else 1.0
 
 
 ## Разовый урон (снаряд врага).
@@ -102,7 +128,18 @@ func take_damage(amount: float) -> void:
 
 
 func heal(amount: float) -> void:
-	hp = minf(hp + amount, max_hp)
+	if not healing_blocked():
+		hp = minf(hp + amount, max_hp)
+
+
+## Кровавый кристалл отключает лечение и регенерацию.
+func healing_blocked() -> bool:
+	return item_level(&"blood_crystal") > 0
+
+
+## Предмет взят, но не действует из-за другого предмета.
+func item_disabled(id: StringName) -> bool:
+	return DISABLED_BY.has(id) and item_level(DISABLED_BY[id]) > 0
 
 
 # --- Модификаторы для оружия ---------------------------------------------------
@@ -113,7 +150,7 @@ func attack_speed() -> float:
 
 
 func damage_mult() -> float:
-	return mods[&"might"]
+	return mods[&"might"] * temp_might
 
 
 ## Множитель перезарядки: интервалы оружия умножаются на него.
@@ -171,6 +208,15 @@ func level_up_item(data: ItemData) -> void:
 	items[data.id] = item_level(data.id) + 1
 	item_data[data.id] = data
 	recalc_mods()
+	if ITEM_EFFECTS.has(data.id):
+		var effect: ItemEffect = item_effects.get(data.id)
+		if effect == null:
+			effect = ITEM_EFFECTS[data.id].new()
+			effect.player = self
+			effect.data = data
+			item_effects[data.id] = effect
+			add_child(effect)
+		effect.set_level(items[data.id])
 
 
 func set_perk(skill: SkillData, level: int) -> void:
@@ -181,6 +227,8 @@ func set_perk(skill: SkillData, level: int) -> void:
 				perk = ManaShieldPerk.new()
 			&"flow":
 				perk = FlowPerk.new()
+			&"arcane_mark":
+				perk = ArcaneMarkPerk.new()
 			_:
 				push_error("Неизвестный навык: %s" % skill.perk)
 				return
@@ -204,13 +252,17 @@ func recalc_mods() -> void:
 	for key in ADD_MODS:
 		mods[key] = 0.0
 	for id in items:
+		if item_disabled(id):
+			continue
+		var halved: bool = HALVED_BY.has(id) and item_level(HALVED_BY[id]) > 0
 		var params := (item_data[id] as ItemData).params_for(items[id])
 		for key: String in params:
 			var mod := StringName(key)
+			var value := float(params[key])
 			if mod in MULT_MODS:
-				mods[mod] *= float(params[key])
+				mods[mod] *= 1.0 - (1.0 - value) * 0.5 if halved else value
 			elif mod in ADD_MODS:
-				mods[mod] += float(params[key])
+				mods[mod] += value * 0.5 if halved else value
 	max_hp = character.max_hp + mods[&"max_hp_bonus"]
 	if max_hp > old_max:
 		hp += max_hp - old_max
@@ -237,8 +289,10 @@ func _take_contact_damage(delta: float) -> void:
 
 ## Весь урон по герою проходит здесь: модификатор получаемого урона, щит, здоровье.
 func _apply_damage(amount: float) -> void:
+	if GameState.elapsed < invulnerable_until:
+		return
 	last_hit_time = GameState.elapsed
-	amount *= mods[&"damage_taken_mult"]
+	amount *= mods[&"damage_taken_mult"] * temp_damage_taken
 	if shield > 0.0:
 		var absorbed := minf(shield, amount)
 		shield -= absorbed
@@ -255,6 +309,9 @@ func _apply_damage(amount: float) -> void:
 
 
 func _die() -> void:
+	var phoenix: PhoenixEffect = item_effects.get(&"phoenix_feather")
+	if phoenix != null and phoenix.try_revive():
+		return
 	hp = 0.0
 	dead = true
 	_sprite.stop()

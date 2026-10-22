@@ -111,7 +111,7 @@ func _update_slots() -> void:
 	var signature := ""
 	for weapon in class_weapons + general_weapons:
 		signature += "%s%d," % [weapon.data.id, weapon.level]
-	signature += "|" + str(player.items)
+	signature += "|%s|%s|%s" % [player.items, player.spent_items, player.healing_blocked()]
 	if signature == _slots_signature:
 		return
 	_slots_signature = signature
@@ -123,6 +123,8 @@ func _update_slots() -> void:
 	for i in UpgradeSystem.ITEM_SLOTS:
 		var item: ItemData = player.item_data[ids[i]] if i < ids.size() else null
 		_fill_slot(_item_slots[i], item.icon if item != null else null, player.items[ids[i]] if item != null else 0)
+		if item != null and (player.item_disabled(item.id) or player.spent_items.has(item.id)):
+			_item_slots[i].modulate = Color(0.4, 0.4, 0.4)
 
 
 func _make_slot(root: Control, at: Vector2, accent: Color) -> Control:

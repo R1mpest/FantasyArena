@@ -122,6 +122,8 @@ func _all(kind: CardOffer.Kind) -> Array:
 
 
 func _is_available(kind: CardOffer.Kind, data: Resource) -> bool:
+	if kind == CardOffer.Kind.ITEM and player.spent_items.has(data.id):
+		return false
 	var level := level_of(kind, data)
 	if level >= _max_level(kind, data):
 		return false
@@ -226,7 +228,19 @@ func _offer(kind: CardOffer.Kind, data: Resource) -> CardOffer:
 			offer.description = weapon.description + "\n" + weapon.text_for(1) if offer.level == 1 else weapon.text_for(offer.level)
 		CardOffer.Kind.ITEM:
 			offer.description = (data as ItemData).text_for(offer.level)
+			offer.warning = _conflict_warning(data.id) if offer.level == 1 else ""
 	return offer
+
+
+## Предупреждение на карте предмета, который ослабит уже взятый.
+func _conflict_warning(id: StringName) -> String:
+	for victim in Player.DISABLED_BY:
+		if Player.DISABLED_BY[victim] == id and player.item_level(victim) > 0:
+			return "%s перестанет работать" % player.item_data[victim].title
+	for victim in Player.HALVED_BY:
+		if Player.HALVED_BY[victim] == id and player.item_level(victim) > 0:
+			return "%s будет работать вполсилы" % player.item_data[victim].title
+	return ""
 
 
 static func _weighted(options: Array, weight_of: Callable) -> Variant:

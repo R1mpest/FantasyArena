@@ -27,6 +27,7 @@ func _ready() -> void:
 
 	experience = Experience.new()
 	experience.pickups_root = pickups
+	experience.player = player
 	add_child(experience)
 
 	var spawner := EnemySpawner.new()

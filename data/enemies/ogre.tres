@@ -16,3 +16,4 @@ from_minute = 2.0
 weight = 0.45
 max_alive = 10
 max_per_wave = 2
+tier = 3

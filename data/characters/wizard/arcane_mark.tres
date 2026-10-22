@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Script" path="res://data/skill_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/wall_banner_blue.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"arcane_mark"
+title = "Арканная метка"
+description = "Враги, задетые разным оружием, получают больше урона"
+icon = ExtResource("2_icon")
+perk = &"arcane_mark"
+max_level = 3
+weight = 1.0
+level_params = Array[Dictionary]([{"bonus": 0.2, "spread": false, "text": "Враг, задетый 3 разными видами оружия за 2 с, получает +20% урона 4 с"}, {"bonus": 0.3, "spread": false, "text": "Метка: +30% урона"}, {"bonus": 0.4, "spread": true, "text": "Метка: +40% урона; при смерти врага переходит на соседей"}])

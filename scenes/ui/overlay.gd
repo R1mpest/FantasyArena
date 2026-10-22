@@ -193,7 +193,8 @@ func _show_upgrades() -> void:
 		_add_row(_weapons_column, weapon.data.icon, weapon.data.title, "%d / %d" % [weapon.level, weapon.data.max_level()], false)
 	for id in player.items:
 		var item: ItemData = player.item_data[id]
-		_add_row(_items_column, item.icon, item.title, "%d / %d" % [player.items[id], item.max_level()], false)
+		var note := " (не действует)" if player.item_disabled(id) else (" (сработало)" if player.spent_items.has(id) else "")
+		_add_row(_items_column, item.icon, item.title + note, "%d / %d" % [player.items[id], item.max_level()], false)
 	for column in [_skills_column, _weapons_column, _items_column]:
 		if column.get_child_count() == 1:
 			column.add_child(UiKit.label("пусто", 9))
