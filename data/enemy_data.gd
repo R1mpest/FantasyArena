@@ -22,6 +22,9 @@ extends Resource
 ## Взрывной враг: подбегает к герою, через короткую задержку взрывается (урон герою) и исчезает.
 @export var explode_damage: float = 0.0
 @export var explode_radius: float = 0.0
+## Свои значения для элитной версии; 0 — общие множители элиты (×3 здоровья, ×1,25 урона).
+@export var elite_max_hp: float = 0.0
+@export var elite_explode_damage: float = 0.0
 ## Своё поведение (скрипт-наследник Enemy) — для боссов.
 @export var behaviour: Script
 ## Во сколько раз спрайт и тело крупнее обычного (боссы).

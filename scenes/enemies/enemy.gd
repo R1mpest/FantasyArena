@@ -285,12 +285,18 @@ func _on_death() -> void:
 
 
 func _make_elite() -> void:
-	hp *= ELITE_HP
+	hp = data.elite_max_hp * k if data.elite_max_hp > 0.0 else hp * ELITE_HP
 	contact_dps *= ELITE_DAMAGE
 	_speed_mult = ELITE_SPEED
 	scale *= ELITE_SCALE
 	_sprite.material = outline_material()
 	add_to_group(&"elites")
+
+
+func explode_damage() -> float:
+	if not elite:
+		return data.explode_damage
+	return data.elite_explode_damage if data.elite_explode_damage > 0.0 else data.explode_damage * ELITE_DAMAGE
 
 
 ## Фитиль взрывного врага: мигает, стоит на месте, потом взрывается и исчезает без опыта.
@@ -304,7 +310,7 @@ func _burn_fuse(delta: float) -> void:
 	var player := target as Player
 	var radius := data.explode_radius * scale.x
 	if player != null and player.global_position.distance_to(center()) <= radius + 6.0:
-		player.take_damage(data.explode_damage * (ELITE_DAMAGE if elite else 1.0))
+		player.take_damage(explode_damage())
 	var blast := Blast.new()
 	blast.damage = 0.0
 	blast.radius = radius

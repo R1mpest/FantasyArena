@@ -291,7 +291,16 @@ func _test_elites() -> void:
 	add_child(elite)
 	_check(is_equal_approx(elite.hp, normal.hp * 3.0) and elite.scale.x > 1.0, "элитный: ×3 здоровья и крупнее")
 	_check(elite.is_in_group(&"elites") and elite._sprite.material != null, "элитный в группе elites и с контуром")
+	var elite_pumpkin := Enemy.new()
+	elite_pumpkin.data = load("res://data/enemies/pumpkin_dude.tres")
+	elite_pumpkin.elite = true
+	elite_pumpkin.target = player
+	elite_pumpkin.position = Vector2(0, 300)
+	add_child(elite_pumpkin)
+	_check(elite_pumpkin.hp == 45.0 and elite_pumpkin.explode_damage() == 45.0, "элитный тыквоголовый: 45 здоровья и 45 урона взрыва")
+	elite_pumpkin.free()
 	var pumpkin := _spawn_test_enemy(player, "pumpkin_dude", player.global_position + Vector2(10, 0))
+	_check(pumpkin.hp == 35.0 and pumpkin.explode_damage() == 35.0, "тыквоголовый: 35 здоровья и 35 урона взрыва")
 	pumpkin._physics_process(0.016)
 	_check(pumpkin._fuse > 0.0, "взрывной у героя поджигает фитиль")
 	var hp_before := player.hp
