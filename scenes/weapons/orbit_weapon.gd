@@ -1,14 +1,17 @@
 class_name OrbitWeapon
 extends Weapon
 ## «Магические сферы»: сферы вращаются вокруг героя и бьют задетых врагов.
+## Размер и орбита растут от Линзы, вращение — от Песочных часов, число сфер — от Колчана.
 
 ## Один и тот же враг получает урон от сфер не чаще раза в столько секунд.
 const HIT_COOLDOWN := 0.45
+const KNOCKBACK_FORCE := 130.0
 
-var damage := 14.0
+var damage := 12.0
 var orb_size := 1.0
 var rotation_speed := 2.6
-var orb_count := 3.0
+var orb_count := 2.0
+var knockback := false
 
 var _angle := 0.0
 ## instance_id врага -> время забега, когда его снова можно ударить.
@@ -20,7 +23,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_angle = wrapf(_angle + rotation_speed * player.attack_speed() * delta, 0.0, TAU)
+	# Ускорение перезарядки у сфер превращается в скорость вращения.
+	_angle = wrapf(_angle + rotation_speed / player.cooldown_factor() * delta, 0.0, TAU)
 	queue_redraw()
 	if player.dead:
 		return
@@ -31,7 +35,9 @@ func _physics_process(delta: float) -> void:
 			if _next_hit.get(id, 0.0) > now:
 				continue
 			_next_hit[id] = now + HIT_COOLDOWN
-			enemy.take_damage(damage * player.might, offset.normalized())
+			enemy.take_damage(damage_of(damage), offset.normalized(), data.id)
+			if knockback:
+				enemy.push(offset.normalized() * KNOCKBACK_FORCE)
 	if _next_hit.size() > 500:
 		for id in _next_hit.keys():
 			if _next_hit[id] < now:
@@ -47,13 +53,13 @@ func _draw() -> void:
 
 
 func _orb_radius() -> float:
-	return 5.0 * orb_size
+	return 5.0 * orb_size * area()
 
 
 func _orb_offsets() -> Array[Vector2]:
 	var result: Array[Vector2] = []
-	var count := int(orb_count)
-	var distance := 26.0 + 8.0 * orb_size
+	var count := int(orb_count) + extra_projectiles()
+	var distance := (26.0 + 8.0 * orb_size) * area()
 	for i in count:
 		result.append(Vector2.from_angle(_angle + TAU * i / count) * distance)
 	return result

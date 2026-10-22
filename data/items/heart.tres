@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/ui_heart_full.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"heart"
+title = "Сердце"
+icon = ExtResource("2_icon")
+kind = 0
+weight = 1.0
+levels = Array[Dictionary]([{"max_hp_bonus": 20.0, "text": "Макс. здоровье +20"}, {"max_hp_bonus": 40.0, "text": "Макс. здоровье +40"}, {"max_hp_bonus": 60.0, "text": "Макс. здоровье +60"}, {"max_hp_bonus": 80.0, "text": "Макс. здоровье +80"}, {"max_hp_bonus": 100.0, "text": "Макс. здоровье +100"}])

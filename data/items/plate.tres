@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_knight_sword.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"plate"
+title = "Латная пластина"
+icon = ExtResource("2_icon")
+kind = 0
+weight = 1.0
+levels = Array[Dictionary]([{"damage_taken_mult": 0.92, "text": "Получаемый урон −8%"}, {"damage_taken_mult": 0.84, "text": "Получаемый урон −16%"}, {"damage_taken_mult": 0.76, "text": "Получаемый урон −24%"}, {"damage_taken_mult": 0.68, "text": "Получаемый урон −32%"}, {"damage_taken_mult": 0.6, "text": "Получаемый урон −40%"}])

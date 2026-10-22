@@ -7,6 +7,7 @@ const DURATION := 0.3
 var damage := 10.0
 var radius := 24.0
 var color := Color(0.75, 0.55, 1.0)
+var source: StringName
 
 var _time := 0.0
 
@@ -14,7 +15,7 @@ var _time := 0.0
 func _ready() -> void:
 	z_index = 1
 	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
-		enemy.take_damage(damage, global_position.direction_to(enemy.center()))
+		enemy.take_damage(damage, global_position.direction_to(enemy.center()), source)
 
 
 func _process(delta: float) -> void:

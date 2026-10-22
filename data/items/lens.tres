@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_green.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"lens"
+title = "Линза"
+icon = ExtResource("2_icon")
+kind = 0
+weight = 1.0
+levels = Array[Dictionary]([{"area_mult": 1.1, "text": "Размер и дальность всех атак +10%"}, {"area_mult": 1.2, "text": "Размер и дальность всех атак +20%"}, {"area_mult": 1.3, "text": "Размер и дальность всех атак +30%"}, {"area_mult": 1.4, "text": "Размер и дальность всех атак +40%"}, {"area_mult": 1.5, "text": "Размер и дальность всех атак +50%"}])

@@ -1,6 +1,6 @@
 class_name Perk
 extends Node2D
-## Личный навык персонажа. Уровни и их параметры задаются в UpgradeData.level_params.
+## Личный навык персонажа. Уровни и их параметры задаются в SkillData.level_params.
 
 var player: Player
 var level := 0

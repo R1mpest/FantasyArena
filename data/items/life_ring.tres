@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_big_red.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"life_ring"
+title = "Кольцо жизни"
+icon = ExtResource("2_icon")
+kind = 0
+weight = 1.0
+levels = Array[Dictionary]([{"regen": 0.6, "text": "+0,6 здоровья в секунду"}, {"regen": 1.2, "text": "+1,2 здоровья в секунду"}, {"regen": 1.8, "text": "+1,8 здоровья в секунду"}, {"regen": 2.4, "text": "+2,4 здоровья в секунду"}, {"regen": 3.0, "text": "+3,0 здоровья в секунду"}])

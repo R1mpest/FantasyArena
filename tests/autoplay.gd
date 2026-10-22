@@ -3,9 +3,9 @@ extends Node
 ## godot --headless --fixed-fps 60 --path . res://tests/autoplay.tscn -- --seconds=180
 ## Ключ --screenshot=путь.png сохраняет кадр в конце (нужен экран, не headless),
 ## с --levelup-shot кадр снимается при первом окне выбора карт.
-## Ключ --give=orbs,meteor,aura выдаёт оружие сразу на старте.
+## Ключ --give=orbs,meteor,power,power выдаёт оружие, предметы и навыки на старте (повтор id — ещё уровень).
 ## Ключ --seed=N — фиксированный сид случайностей для сравнения прогонов.
-## Ключ --pause-shot — в конце открыть паузу → «Улучшения» (для скриншота).
+## Ключ --pause-shot — в конце открыть паузу (для скриншота), --upgrades-shot — паузу → «Улучшения».
 ## Ключ --mouse-aim — прицеливание «по мыши» (курсор стоит на месте).
 ## Ключ --god — герой не умирает (для проверки поздней игры).
 ## Ключ --weapons — всегда брать оружие и его прокачку, если они есть среди карт.
@@ -42,7 +42,7 @@ func _ready() -> void:
 			_give = arg.get_slice("=", 1).split(",")
 		elif arg.begins_with("--seed="):
 			seed(int(arg.get_slice("=", 1)))
-		elif arg == "--pause-shot":
+		elif arg == "--pause-shot" or arg == "--upgrades-shot":
 			_pause_shot = true
 		elif arg == "--god":
 			_god = true
@@ -54,16 +54,19 @@ func _ready() -> void:
 	_run = load("res://scenes/main/run.tscn").instantiate()
 	add_child(_run)
 	for id in _give:
-		for upgrade: UpgradeData in _run.upgrade_system.upgrades:
-			if upgrade.id == StringName(id):
-				_run.upgrade_system.apply(upgrade)
+		if not _run.upgrade_system.give(StringName(id)):
+			push_error("Нечего выдать по --give: %s" % id)
 
 
 func _process(delta: float) -> void:
 	var panel: LevelUpPanel = _run.level_up_panel
 	if panel.is_open() and _levelup_shot:
 		_shot_wait += delta
-		if _shot_wait > 0.8:
+		var frame := int(_shot_wait * 60.0)
+		if frame in [1, 10, 30, 50]:
+			get_viewport().get_texture().get_image().save_png(_screenshot.replace(".png", "_%d.png" % frame))
+			print("DBG frame ", frame, " dim_alpha=", panel._dim.modulate.a, " cards_scale=", panel._cards[0].scale)
+		if _shot_wait > 0.9:
 			_finish()
 		return
 	if panel.is_open():
@@ -93,10 +96,10 @@ func _process(delta: float) -> void:
 		_finish()
 
 
-func _pick(options: Array[UpgradeData]) -> int:
+func _pick(options: Array[CardOffer]) -> int:
 	if _prefer_weapons:
 		for i in options.size():
-			if options[i].kind != UpgradeData.Kind.PLAYER_STAT:
+			if options[i].kind == CardOffer.Kind.WEAPON:
 				return i
 	return randi() % options.size()
 
@@ -121,12 +124,19 @@ func _finish() -> void:
 	for id in _peak_by_type:
 		alive[id] = get_tree().get_node_count_in_group(StringName("enemy_" + id))
 	print("AUTOPLAY пик_по_типам=", _peak_by_type, " живы_в_конце=", alive)
-	print("AUTOPLAY улучшения=", _run.upgrade_system.levels)
-	print("AUTOPLAY оружие=", player.weapons.keys())
+	var build := PackedStringArray()
+	for weapon: Weapon in player.weapons.values():
+		build.append("%s %d" % [weapon.data.id, weapon.level])
+	for id in player.items:
+		build.append("%s %d" % [id, player.items[id]])
+	for id in player.perks:
+		build.append("%s %d" % [id, player.perks[id].level])
+	print("AUTOPLAY билд=", ", ".join(build))
 	if _pause_shot:
 		var overlay: Overlay = _run.find_children("*", "Overlay", true, false)[0]
 		overlay._show(Overlay.Mode.PAUSE)
-		overlay._show_upgrades()
+		if "--upgrades-shot" in OS.get_cmdline_user_args():
+			overlay._show_upgrades()
 		await get_tree().process_frame
 	if _screenshot != "":
 		get_tree().paused = true

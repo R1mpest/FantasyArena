@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="UpgradeData" format=3]
+[gd_resource type="Resource" script_class="SkillData" format=3]
 
-[ext_resource type="Script" path="res://data/upgrade_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://data/skill_data.gd" id="1_data"]
 [ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_yellow.png" id="2_icon"]
 
 [resource]
@@ -9,8 +9,7 @@ id = &"flow"
 title = "Поток"
 description = "Убийства ускоряют атаку, урон сбрасывает бонус"
 icon = ExtResource("2_icon")
-kind = 3
 perk = &"flow"
 max_level = 3
-weight = 0.9
+weight = 1.0
 level_params = Array[Dictionary]([{"per_kill": 0.02, "duration": 3.0, "cap": 0.12, "text": "Убийство даёт +2% к скорости атаки на 3 с, до +12%; получил урон — всё сбрасывается"}, {"per_kill": 0.02, "duration": 3.0, "cap": 0.18, "text": "Бонус до +18%"}, {"per_kill": 0.02, "duration": 3.0, "cap": 0.25, "text": "Бонус до +25%"}])

@@ -32,10 +32,8 @@ func _ready() -> void:
 	add_child(_run)
 	_spawner = _run.find_children("*", "EnemySpawner", true, false)[0]
 	_spawner.set_process(false)
-	for id in ["orbs", "meteor", "aura", "quiver", "quiver", "pierce"]:
-		for upgrade: UpgradeData in _run.upgrade_system.upgrades:
-			if upgrade.id == StringName(id):
-				_run.upgrade_system.apply(upgrade)
+	for id in ["orbs", "meteor", "aura", "magic_bolt", "magic_bolt", "quiver"]:
+		_run.upgrade_system.give(StringName(id))
 
 
 func _process(delta: float) -> void:

@@ -36,6 +36,7 @@ func _ready() -> void:
 
 	upgrade_system = UpgradeSystem.new()
 	upgrade_system.player = player
+	upgrade_system.experience = experience
 	add_child(upgrade_system)
 
 	var hud := Hud.new()

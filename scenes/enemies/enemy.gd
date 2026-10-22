@@ -29,6 +29,9 @@ var _shot_cooldown := 0.0
 var _strafe_sign := 1.0
 var _separation := Vector2.ZERO
 var _frame := 0
+## Замедление: доля снижения скорости и сколько оно ещё длится.
+var _slow := 0.0
+var _slow_time := 0.0
 
 
 func _ready() -> void:
@@ -69,7 +72,11 @@ func _physics_process(delta: float) -> void:
 	_frame += 1
 	if grid != null and _frame % SEPARATION_EVERY == 0:
 		_separation = grid.separation(self)
-	velocity = move * data.speed + _separation * SEPARATION_SPEED + _knockback
+	if _slow_time > 0.0:
+		_slow_time -= delta
+		if _slow_time <= 0.0:
+			_slow = 0.0
+	velocity = move * data.speed * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
 	global_position += velocity * delta
 	_sprite.flip_h = direction.x < 0.0
@@ -105,6 +112,13 @@ func _try_shoot(delta: float, distance: float) -> void:
 	get_parent().add_child(shot)
 
 
+## Замедляет на долю amount (0.25 = −25% скорости) на duration секунд; сильное замедление важнее.
+func apply_slow(amount: float, duration: float) -> void:
+	if amount >= _slow:
+		_slow = amount
+	_slow_time = maxf(_slow_time, duration)
+
+
 ## Толчок (например, от разрушенного мана-щита).
 func push(impulse: Vector2) -> void:
 	_knockback = impulse
@@ -126,7 +140,8 @@ static func in_radius(tree: SceneTree, at: Vector2, radius: float) -> Array[Enem
 	return result
 
 
-func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO) -> void:
+## source — id оружия, нанёсшего урон (нужен «Арканной метке»).
+func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, _source: StringName = &"") -> void:
 	if dead:
 		return
 	hp -= amount

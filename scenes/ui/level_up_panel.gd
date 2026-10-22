@@ -7,10 +7,11 @@ var upgrade_system: UpgradeSystem
 var _pending := 0
 var _level := 1
 var _busy := false
-var _options: Array[UpgradeData] = []
+var _options: Array[CardOffer] = []
 var _cards: Array[UpgradeCard] = []
 var _dim: ColorRect
 var _title: Label
+var _subtitle: Label
 var _row: HBoxContainer
 
 
@@ -30,7 +31,8 @@ func _ready() -> void:
 	_title = UiKit.label("", 20, HORIZONTAL_ALIGNMENT_CENTER)
 	_title.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4))
 	column.add_child(_title)
-	column.add_child(UiKit.label("Выберите карту", 10, HORIZONTAL_ALIGNMENT_CENTER))
+	_subtitle = UiKit.label("", 10, HORIZONTAL_ALIGNMENT_CENTER)
+	column.add_child(_subtitle)
 	_row = HBoxContainer.new()
 	_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_row.add_theme_constant_override(&"separation", 14)
@@ -45,7 +47,7 @@ func is_open() -> bool:
 	return _dim.visible
 
 
-func options() -> Array[UpgradeData]:
+func options() -> Array[CardOffer]:
 	return _options
 
 
@@ -87,17 +89,18 @@ func _on_level_up(level: int) -> void:
 
 func _show_choices() -> void:
 	get_tree().paused = true
-	_title.text = "Уровень %d!" % (_level - _pending + 1)
-	_options = upgrade_system.roll(3)
+	var level := _level - _pending + 1
+	_title.text = "Уровень %d!" % level
+	_options = upgrade_system.roll(level)
+	var special := _options.any(func(offer: CardOffer) -> bool: return offer.is_style_item())
+	_subtitle.text = "Особый выбор: предмет, меняющий стиль игры" if level in UpgradeSystem.SPECIAL_LEVELS and special else "Выберите карту"
 	for card in _cards:
 		_row.remove_child(card)
 		card.queue_free()
 	_cards.clear()
 	for i in _options.size():
-		var upgrade := _options[i]
-		var next_level := 0 if upgrade.kind == UpgradeData.Kind.NEW_WEAPON or upgrade.max_level == 0 else upgrade_system.level_of(upgrade) + 1
 		var card := UpgradeCard.new()
-		card.setup(upgrade, next_level, i + 1)
+		card.setup(_options[i], i + 1)
 		card.pressed.connect(choose.bind(i))
 		_row.add_child(card)
 		card.play_in(0.12 * i)

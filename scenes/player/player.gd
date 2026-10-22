@@ -1,7 +1,8 @@
 class_name Player
 extends CharacterBody2D
-## Игрок: движение, здоровье и статы, которые качаются улучшениями.
-## Внешний вид, стартовые статы и личные навыки берутся из CharacterData.
+## Игрок: движение, здоровье, слоты оружия и предметов, личные навыки.
+## Внешний вид, стартовые статы, стартовое оружие и навыки берутся из CharacterData;
+## модификаторы (урон, перезарядка, размер атак...) пересчитываются из предметов.
 
 ## Урон дошёл до здоровья (после щита).
 signal hp_lost(amount: float)
@@ -9,28 +10,23 @@ signal hp_lost(amount: float)
 signal shield_broken
 
 const DEFAULT_CHARACTER := "res://data/characters/wizard/wizard.tres"
+const BASE_PICKUP_RADIUS := 48.0
+## Модификаторы предметов: эти перемножаются...
+const MULT_MODS := [&"might", &"cooldown_mult", &"area_mult", &"move_speed_mult", &"pickup_mult", &"damage_taken_mult"]
+## ...а эти складываются.
+const ADD_MODS := [&"max_hp_bonus", &"regen", &"extra_projectiles"]
 
 var character: CharacterData
 
-# Все статы float, чтобы любое улучшение применялось одной формулой.
 var max_hp := 100.0
 var hp := 100.0
 var move_speed := 85.0
 var regen := 0.0
-var pickup_radius := 48.0
-## Общий множитель урона всего оружия.
-var might := 1.0
-var damage := 14.0
-var fire_interval := 0.7
-var projectile_speed := 260.0
-var projectile_count := 1.0
-var pierce := 0.0
-var attack_range := 200.0
+var pickup_radius := BASE_PICKUP_RADIUS
+## Итоговые модификаторы от предметов (см. MULT_MODS и ADD_MODS).
+var mods: Dictionary = {}
 ## Прибавка к скорости атаки всего оружия (0.2 = +20%), её даёт «Поток».
 var attack_speed_bonus := 0.0
-## «Резонанс»: каждый N-й магический снаряд взрывается (0 — навыка нет).
-var resonance_every := 0
-var resonance_radius := 0.0
 ## «Мана-щит»: поглощает урон раньше здоровья.
 var shield := 0.0
 var shield_max := 0.0
@@ -39,8 +35,11 @@ var last_hit_time := 0.0
 
 ## Куда оружие добавляет снаряды.
 var projectile_root: Node
-## id оружия -> узел Weapon (стартовый снаряд сюда не входит).
+## id оружия -> узел Weapon (включая стартовое).
 var weapons: Dictionary = {}
+## id предмета -> уровень; данные предметов — в item_data.
+var items: Dictionary = {}
+var item_data: Dictionary = {}
 ## id навыка -> узел Perk.
 var perks: Dictionary = {}
 var dead := false
@@ -57,9 +56,8 @@ func _ready() -> void:
 	motion_mode = MOTION_MODE_FLOATING
 	if character == null:
 		character = load(DEFAULT_CHARACTER)
-	max_hp = character.max_hp
+	recalc_mods()
 	hp = max_hp
-	move_speed = character.move_speed
 
 	_sprite = SpriteLib.make_sprite({&"idle": character.anim_idle, &"run": character.anim_run})
 	add_child(_sprite)
@@ -77,10 +75,8 @@ func _ready() -> void:
 	camera.position_smoothing_speed = 10.0
 	add_child(camera)
 
-	var weapon := AutoWeapon.new()
-	weapon.player = self
-	weapon.position = Vector2(0, -12)
-	add_child(weapon)
+	if character.starting_weapon != null:
+		add_weapon(character.starting_weapon)
 
 
 func _physics_process(delta: float) -> void:
@@ -105,63 +101,126 @@ func take_damage(amount: float) -> void:
 	_apply_damage(amount)
 
 
-## Множитель скорости атаки: интервалы оружия делятся на него.
+func heal(amount: float) -> void:
+	hp = minf(hp + amount, max_hp)
+
+
+# --- Модификаторы для оружия ---------------------------------------------------
+
+## Множитель скорости атаки от навыков («Поток»).
 func attack_speed() -> float:
 	return 1.0 + attack_speed_bonus
 
 
-func set_perk(upgrade: UpgradeData, level: int) -> void:
-	var perk: Perk = perks.get(upgrade.perk)
-	if perk == null:
-		match upgrade.perk:
-			&"resonance":
-				perk = ResonancePerk.new()
-			&"mana_shield":
-				perk = ManaShieldPerk.new()
-			&"flow":
-				perk = FlowPerk.new()
-			_:
-				push_error("Неизвестный навык: %s" % upgrade.perk)
-				return
-		perk.player = self
-		perks[upgrade.perk] = perk
-		add_child(perk)
-	perk.set_level(level, upgrade.params_for(level))
+func damage_mult() -> float:
+	return mods[&"might"]
 
 
-func heal(amount: float) -> void:
-	hp = minf(hp + amount, max_hp)
+## Множитель перезарядки: интервалы оружия умножаются на него.
+func cooldown_factor() -> float:
+	return mods[&"cooldown_mult"] / attack_speed()
 
+
+## Множитель размера и дальности атак (Линза).
+func area() -> float:
+	return mods[&"area_mult"]
+
+
+func extra_projectiles() -> int:
+	return int(mods[&"extra_projectiles"])
+
+
+# --- Слоты ---------------------------------------------------------------------
 
 func has_weapon(id: StringName) -> bool:
 	return weapons.has(id)
 
 
-func add_weapon(id: StringName) -> void:
-	if has_weapon(id):
-		return
-	var weapon: Weapon
-	match id:
-		&"orbs":
-			weapon = OrbitWeapon.new()
-		&"meteor":
-			weapon = MeteorWeapon.new()
-		&"aura":
-			weapon = AuraWeapon.new()
-		_:
-			push_error("Неизвестное оружие: %s" % id)
-			return
+func weapon_level(id: StringName) -> int:
+	return (weapons[id] as Weapon).level if weapons.has(id) else 0
+
+
+## Сколько занято слотов оружия этого пула (классовые или общие).
+func weapon_count(pool: WeaponData.Pool) -> int:
+	return weapons.values().filter(func(w: Weapon) -> bool: return w.data.pool == pool).size()
+
+
+## Даёт оружие (уровень 1) или поднимает уровень уже взятого.
+func level_up_weapon(data: WeaponData) -> void:
+	if not has_weapon(data.id):
+		add_weapon(data)
+	else:
+		(weapons[data.id] as Weapon).set_level(weapon_level(data.id) + 1)
+
+
+func add_weapon(data: WeaponData) -> void:
+	var weapon: Weapon = data.weapon_script.new()
 	weapon.player = self
+	weapon.data = data
 	weapon.position = Vector2(0, -10)
-	weapons[id] = weapon
+	weapons[data.id] = weapon
 	add_child(weapon)
+	weapon.set_level(1)
 
 
-func apply_upgrade(upgrade: UpgradeData) -> void:
-	upgrade.apply_to(self)
-	if upgrade.stat == &"max_hp":
-		hp += upgrade.amount
+func item_level(id: StringName) -> int:
+	return items.get(id, 0)
 
+
+func level_up_item(data: ItemData) -> void:
+	items[data.id] = item_level(data.id) + 1
+	item_data[data.id] = data
+	recalc_mods()
+
+
+func set_perk(skill: SkillData, level: int) -> void:
+	var perk: Perk = perks.get(skill.perk)
+	if perk == null:
+		match skill.perk:
+			&"mana_shield":
+				perk = ManaShieldPerk.new()
+			&"flow":
+				perk = FlowPerk.new()
+			_:
+				push_error("Неизвестный навык: %s" % skill.perk)
+				return
+		perk.player = self
+		perks[skill.perk] = perk
+		add_child(perk)
+	perk.set_level(level, skill.params_for(level))
+
+
+func skill_level(skill: SkillData) -> int:
+	var perk: Perk = perks.get(skill.perk)
+	return perk.level if perk != null else 0
+
+
+## Пересчитывает модификаторы из предметов; прибавка к макс. здоровью сразу лечит на неё.
+func recalc_mods() -> void:
+	var old_max := max_hp
+	mods = {}
+	for key in MULT_MODS:
+		mods[key] = 1.0
+	for key in ADD_MODS:
+		mods[key] = 0.0
+	for id in items:
+		var params := (item_data[id] as ItemData).params_for(items[id])
+		for key: String in params:
+			var mod := StringName(key)
+			if mod in MULT_MODS:
+				mods[mod] *= float(params[key])
+			elif mod in ADD_MODS:
+				mods[mod] += float(params[key])
+	max_hp = character.max_hp + mods[&"max_hp_bonus"]
+	if max_hp > old_max:
+		hp += max_hp - old_max
+	hp = minf(hp, max_hp)
+	move_speed = character.move_speed * mods[&"move_speed_mult"]
+	pickup_radius = BASE_PICKUP_RADIUS * mods[&"pickup_mult"]
+	regen = mods[&"regen"]
+
+
+# --- Урон ----------------------------------------------------------------------
 
 func _take_contact_damage(delta: float) -> void:
 	var dps := 0.0
@@ -176,9 +235,10 @@ func _take_contact_damage(delta: float) -> void:
 	_apply_damage(dps * delta)
 
 
-## Весь урон по герою проходит здесь: сначала щит, потом здоровье.
+## Весь урон по герою проходит здесь: модификатор получаемого урона, щит, здоровье.
 func _apply_damage(amount: float) -> void:
 	last_hit_time = GameState.elapsed
+	amount *= mods[&"damage_taken_mult"]
 	if shield > 0.0:
 		var absorbed := minf(shield, amount)
 		shield -= absorbed

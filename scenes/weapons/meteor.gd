@@ -9,6 +9,10 @@ const START := Vector2(-50.0, -140.0)
 
 var damage := 20.0
 var radius := 30.0
+var source: StringName
+## Больше нуля — после взрыва остаётся горящая лужа.
+var burn_dps := 0.0
+var burn_time := 0.0
 
 var _time := 0.0
 var _exploded := false
@@ -26,7 +30,15 @@ func _process(delta: float) -> void:
 func _explode() -> void:
 	_exploded = true
 	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
-		enemy.take_damage(damage, global_position.direction_to(enemy.center()))
+		enemy.take_damage(damage, global_position.direction_to(enemy.center()), source)
+	if burn_dps > 0.0:
+		var patch := BurnPatch.new()
+		patch.position = position
+		patch.radius = radius
+		patch.dps = burn_dps
+		patch.duration = burn_time
+		patch.source = source
+		get_parent().add_child(patch)
 
 
 func _draw() -> void:

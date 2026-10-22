@@ -1,6 +1,7 @@
 class_name Overlay
 extends CanvasLayer
 ## Пауза (Esc), экран поражения со статистикой и список взятых улучшений.
+## Раскладка как в HoloCure: слева панель героя с итоговыми характеристиками, по центру меню.
 
 enum Mode { NONE, PAUSE, DEAD }
 
@@ -12,9 +13,11 @@ var _title: Label
 var _stats: Label
 var _button: Button
 var _upgrades_view: Control
+var _skills_column: VBoxContainer
 var _weapons_column: VBoxContainer
-var _stats_column: VBoxContainer
+var _items_column: VBoxContainer
 var _settings: SettingsPanel
+var _hero_stats: GridContainer
 
 
 func _ready() -> void:
@@ -39,6 +42,7 @@ func _ready() -> void:
 	var menu_button := UiKit.button("В главное меню")
 	menu_button.pressed.connect(Transition.change_scene.bind(Transition.MENU_SCENE))
 	box.add_child(menu_button)
+	_build_hero_panel()
 	add_child(_root)
 	_root.hide()
 	_build_upgrades_view()
@@ -69,6 +73,7 @@ func _show(mode: Mode) -> void:
 	_title.text = "Пауза" if mode == Mode.PAUSE else "Поражение"
 	_button.text = "Продолжить (Esc)" if mode == Mode.PAUSE else "Заново (R)"
 	_stats.text = "Время: %s\nУровень: %d\nУбито: %d" % [GameState.format_time(), GameState.level, GameState.kills]
+	_update_hero_stats()
 	_root.show()
 	_button.grab_focus()
 
@@ -90,6 +95,59 @@ func _restart() -> void:
 	Transition.change_scene(Transition.RUN_SCENE)
 
 
+func _build_hero_panel() -> void:
+	var player := upgrade_system.player
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	panel.offset_left = 16
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	panel.add_theme_stylebox_override(&"panel", UiKit.box(Color(0.13, 0.1, 0.16, 0.92), Color(0.55, 0.45, 0.65), 1))
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override(&"separation", 4)
+	panel.add_child(column)
+	var hero := TextureRect.new()
+	hero.texture = SpriteLib.frames({&"idle": player.character.anim_idle}).get_frame_texture(&"idle", 0)
+	hero.custom_minimum_size = Vector2(0, 64)
+	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	column.add_child(hero)
+	var name_label := UiKit.label(player.character.display_name, 12, HORIZONTAL_ALIGNMENT_CENTER)
+	name_label.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4))
+	column.add_child(name_label)
+	_hero_stats = GridContainer.new()
+	_hero_stats.columns = 2
+	_hero_stats.add_theme_constant_override(&"h_separation", 10)
+	_hero_stats.add_theme_constant_override(&"v_separation", 1)
+	column.add_child(_hero_stats)
+	_root.add_child(panel)
+
+
+func _update_hero_stats() -> void:
+	var player := upgrade_system.player
+	var rows := [
+		["Здоровье", "%d / %d" % [ceili(player.hp), roundi(player.max_hp)]],
+		["Урон", _percent(player.damage_mult() - 1.0)],
+		["Перезарядка", _percent(player.cooldown_factor() - 1.0)],
+		["Скорость бега", _percent(player.mods[&"move_speed_mult"] - 1.0)],
+		["Размер атак", _percent(player.area() - 1.0)],
+		["Радиус сбора", _percent(player.mods[&"pickup_mult"] - 1.0)],
+		["Получаемый урон", _percent(player.mods[&"damage_taken_mult"] - 1.0)],
+		["Регенерация", "%s/с" % String.num(player.regen, 1)],
+	]
+	for child in _hero_stats.get_children():
+		child.queue_free()
+	for row in rows:
+		_hero_stats.add_child(UiKit.label(row[0], 9))
+		var value := UiKit.label(row[1], 9, HORIZONTAL_ALIGNMENT_RIGHT)
+		value.add_theme_color_override(&"font_color", Color(1, 0.9, 0.6))
+		_hero_stats.add_child(value)
+
+
+static func _percent(value: float) -> String:
+	var rounded := roundi(value * 100.0)
+	return "0%" if rounded == 0 else "%+d%%" % rounded
+
+
 func _open_settings() -> void:
 	_root.hide()
 	_settings.open()
@@ -106,10 +164,11 @@ func _build_upgrades_view() -> void:
 	var box: VBoxContainer = parts[1]
 	box.add_child(UiKit.label("Улучшения", 16, HORIZONTAL_ALIGNMENT_CENTER))
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override(&"separation", 24)
+	columns.add_theme_constant_override(&"separation", 16)
 	box.add_child(columns)
+	_skills_column = _column(columns, "Навыки")
 	_weapons_column = _column(columns, "Оружие")
-	_stats_column = _column(columns, "Характеристики")
+	_items_column = _column(columns, "Предметы")
 	var back := UiKit.button("Назад (Esc)")
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(_hide_upgrades)
@@ -119,30 +178,25 @@ func _build_upgrades_view() -> void:
 
 
 func _show_upgrades() -> void:
-	for column in [_weapons_column, _stats_column]:
+	var player := upgrade_system.player
+	for column in [_skills_column, _weapons_column, _items_column]:
 		for child in column.get_children().slice(1):
 			child.queue_free()
-	_add_row(_weapons_column, SpriteLib.texture("flask_blue"), "Магический снаряд", "стартовое", false)
-	for weapon in upgrade_system.upgrades:
-		if weapon.kind != UpgradeData.Kind.NEW_WEAPON or upgrade_system.level_of(weapon) == 0:
-			continue
-		_add_row(_weapons_column, weapon.icon, weapon.title, "", false)
-		for upgrade in upgrade_system.upgrades:
-			if upgrade.kind == UpgradeData.Kind.WEAPON_STAT and upgrade.weapon == weapon.weapon and upgrade_system.level_of(upgrade) > 0:
-				_add_row(_weapons_column, null, upgrade.title.get_slice(": ", 1).capitalize(), _level_text(upgrade), true)
-	for upgrade in upgrade_system.upgrades:
-		if upgrade.kind == UpgradeData.Kind.PLAYER_STAT and upgrade_system.level_of(upgrade) > 0:
-			_add_row(_stats_column, upgrade.icon, upgrade.title, _level_text(upgrade), false)
-	if _stats_column.get_child_count() == 1:
-		_stats_column.add_child(UiKit.label("пока ничего", 9))
-	var personal := upgrade_system.upgrades.filter(func(u: UpgradeData) -> bool:
-		return u.kind == UpgradeData.Kind.PERSONAL and upgrade_system.level_of(u) > 0)
-	if not personal.is_empty():
-		var header := UiKit.label("Личные навыки", 11)
-		header.add_theme_color_override(&"font_color", Color(0.8, 0.5, 1.0))
-		_stats_column.add_child(header)
-		for upgrade: UpgradeData in personal:
-			_add_row(_stats_column, upgrade.icon, upgrade.title, _level_text(upgrade), false)
+	(_skills_column.get_child(0) as Label).text = "Навыки %d/%d" % [player.perks.size(), upgrade_system.skills.size()]
+	(_weapons_column.get_child(0) as Label).text = "Оружие %d/%d" % [player.weapons.size(), UpgradeSystem.CLASS_SLOTS + UpgradeSystem.GENERAL_SLOTS]
+	(_items_column.get_child(0) as Label).text = "Предметы %d/%d" % [player.items.size(), UpgradeSystem.ITEM_SLOTS]
+	for skill in upgrade_system.skills:
+		var level := player.skill_level(skill)
+		if level > 0:
+			_add_row(_skills_column, skill.icon, skill.title, "%d / %d" % [level, skill.max_level], false)
+	for weapon: Weapon in player.weapons.values():
+		_add_row(_weapons_column, weapon.data.icon, weapon.data.title, "%d / %d" % [weapon.level, weapon.data.max_level()], false)
+	for id in player.items:
+		var item: ItemData = player.item_data[id]
+		_add_row(_items_column, item.icon, item.title, "%d / %d" % [player.items[id], item.max_level()], false)
+	for column in [_skills_column, _weapons_column, _items_column]:
+		if column.get_child_count() == 1:
+			column.add_child(UiKit.label("пусто", 9))
 	_root.hide()
 	_upgrades_view.show()
 	(_upgrades_view.find_children("*", "Button", true, false)[0] as Button).grab_focus()
@@ -154,13 +208,9 @@ func _hide_upgrades() -> void:
 	_button.grab_focus()
 
 
-func _level_text(upgrade: UpgradeData) -> String:
-	return "%d / %d" % [upgrade_system.level_of(upgrade), upgrade.max_level]
-
-
 func _column(parent: Control, header: String) -> VBoxContainer:
 	var column := VBoxContainer.new()
-	column.custom_minimum_size = Vector2(170, 0)
+	column.custom_minimum_size = Vector2(150, 0)
 	column.add_theme_constant_override(&"separation", 3)
 	var title := UiKit.label(header, 11)
 	title.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4))

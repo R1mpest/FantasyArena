@@ -1,10 +1,12 @@
 class_name AuraWeapon
 extends Weapon
-## «Пылающая аура»: раз в tick секунд бьёт всех врагов внутри круга вокруг героя.
+## «Священная аура»: раз в tick секунд бьёт всех врагов внутри круга вокруг героя.
+## На 5-м уровне ещё и замедляет их.
 
 var damage := 8.0
 var radius := 42.0
 var tick := 0.5
+var slow := 0.0
 
 var _timer := 0.0
 var _pulse := 0.0
@@ -22,12 +24,19 @@ func _physics_process(delta: float) -> void:
 	_timer -= delta
 	if _timer > 0.0:
 		return
-	_timer = tick / player.attack_speed()
-	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
-		enemy.take_damage(damage * player.might)
+	_timer = cooldown_of(tick)
+	for enemy in Enemy.in_radius(get_tree(), global_position, _radius()):
+		enemy.take_damage(damage_of(damage), Vector2.ZERO, data.id)
+		if slow > 0.0:
+			enemy.apply_slow(slow, _timer * 1.5)
 	_pulse = 1.0
 
 
+func _radius() -> float:
+	return radius * area()
+
+
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, radius, Color(0.6, 0.3, 1.0, 0.1 + 0.12 * _pulse))
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 56, Color(0.8, 0.55, 1.0, 0.45 + 0.4 * _pulse), 1.0)
+	var r := _radius()
+	draw_circle(Vector2.ZERO, r, Color(0.6, 0.3, 1.0, 0.1 + 0.12 * _pulse))
+	draw_arc(Vector2.ZERO, r, 0.0, TAU, 56, Color(0.8, 0.55, 1.0, 0.45 + 0.4 * _pulse), 1.0)

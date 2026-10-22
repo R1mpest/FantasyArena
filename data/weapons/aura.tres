@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_green_magic_staff.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/aura_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"aura"
+title = "Священная аура"
+description = "Зона вокруг героя постоянно жжёт врагов внутри"
+icon = ExtResource("2_icon")
+pool = 1
+weapon_script = ExtResource("3_script")
+uses_quiver = false
+levels = Array[Dictionary]([{"damage": 8.0, "radius": 42.0, "tick": 0.5, "slow": 0.0, "text": "Радиус 42, 8 урона раз в 0,5 с"}, {"radius": 48.3, "text": "+15% радиуса"}, {"damage": 10.4, "text": "+30% урона"}, {"radius": 55.5, "tick": 0.425, "text": "+15% радиуса, удары на 15% чаще"}, {"slow": 0.25, "text": "Враги внутри замедлены на 25%"}])

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/weapon_red_magic_staff.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/meteor_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"meteor"
+title = "Огненный дождь"
+description = "С неба падают огненные шары и взрываются по площади"
+icon = ExtResource("2_icon")
+pool = 0
+weapon_script = ExtResource("3_script")
+uses_quiver = true
+levels = Array[Dictionary]([{"damage": 35.0, "blast_radius": 30.0, "interval": 2.0, "count": 1.0, "burn": false, "burn_dps": 12.0, "burn_time": 3.0, "text": "1 шар раз в 2 с, 35 урона, радиус 30"}, {"damage": 45.5, "text": "+30% урона"}, {"count": 2.0, "text": "+1 шар за залп"}, {"blast_radius": 37.5, "text": "+25% радиуса взрыва"}, {"burn": true, "interval": 1.6, "text": "Место падения горит 3 с, перезарядка −20%"}])

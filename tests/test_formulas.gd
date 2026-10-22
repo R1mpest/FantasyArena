@@ -11,6 +11,7 @@ func _ready() -> void:
 	_test_difficulty()
 	_test_spawn()
 	_test_upgrade_roll()
+	_test_weapon_levels()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -42,41 +43,89 @@ func _test_spawn() -> void:
 	_check(Formulas.xp_drop(1, 0.0) == 1 and Formulas.xp_drop(6, 10.0) == 13, "опыт с врага растёт по k(t)")
 
 
-func _test_upgrade_roll() -> void:
+## Игрок и система прокачки в дереве сцены, как в забеге.
+func _new_build() -> Array:
 	var player := Player.new()
+	player.projectile_root = self
+	add_child(player)
+	var experience := Experience.new()
 	var system := UpgradeSystem.new()
 	system.player = player
-	system._ready()
-	_check(system.upgrades.size() == 21, "загружена 21 карта")
+	system.experience = experience
+	add_child(system)
+	return [player, system, experience]
 
-	var ids := {}
-	for upgrade in system.roll(3):
-		ids[upgrade.id] = true
-	_check(ids.size() == 3, "3 разных варианта")
 
-	var weapon_stats := system.upgrades.filter(func(u: UpgradeData) -> bool: return u.kind == UpgradeData.Kind.WEAPON_STAT)
-	_check(not weapon_stats.any(system.is_available), "прокачка оружия скрыта, пока оружия нет")
+func _free_build(build: Array) -> void:
+	for node: Node in build:
+		node.free()
 
-	player.weapons[&"orbs"] = Node.new()
-	var orbs_new: UpgradeData = system.upgrades.filter(func(u: UpgradeData) -> bool: return u.id == &"orbs")[0]
-	var orbs_size: UpgradeData = system.upgrades.filter(func(u: UpgradeData) -> bool: return u.id == &"orbs_size")[0]
-	_check(system.is_available(orbs_size) and not system.is_available(orbs_new), "с оружием: есть прокачка, нет повторной выдачи")
-	player.weapons[&"orbs"].free()
-	player.weapons.clear()
 
-	# Всё доступное, кроме двух карт, на максимуме: предлагаются только эти две.
-	var available := system.upgrades.filter(system.is_available)
-	for upgrade in available.slice(2):
-		system.levels[upgrade.id] = upgrade.max_level
-	var rolled := system.roll(3)
-	_check(rolled.size() == 2 and rolled.all(system.is_available), "максимальные уровни не предлагаются")
+func _test_upgrade_roll() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	_check(player.weapon_level(&"magic_bolt") == 1, "стартовое оружие на 1-м уровне")
+	_check(system.weapons.size() == 4 and system.items.size() == 9 and system.skills.size() == 2, "4 оружия, 9 предметов, 2 навыка")
 
-	for upgrade in system.upgrades:
-		system.levels[upgrade.id] = upgrade.max_level
-	rolled = system.roll(3)
-	_check(rolled.size() == 1 and rolled[0].id == &"heal", "когда всё взято — лечение")
-	system.free()
-	player.free()
+	var skill_later := false
+	var distinct := true
+	for i in 200:
+		var offers := system.roll(2)
+		var seen := {}
+		for j in offers.size():
+			seen[offers[j].data] = true
+			skill_later = skill_later or (j > 0 and offers[j].kind == CardOffer.Kind.SKILL)
+		distinct = distinct and seen.size() == offers.size() and offers.size() == 3
+	_check(distinct, "3 разные карты")
+	_check(not skill_later, "навыки только на первой карте")
+
+	for id in [&"boots", &"heart", &"magnet", &"power", &"lens", &"plate"]:
+		system.give(id)
+	var new_item := false
+	for i in 100:
+		for offer in system.roll(2):
+			new_item = new_item or (offer.kind == CardOffer.Kind.ITEM and offer.is_new())
+	_check(not new_item, "при 6 занятых слотах новые предметы не предлагаются")
+
+	_check(is_equal_approx(player.damage_mult(), 1.15) and is_equal_approx(player.area(), 1.1), "Сила и Линза ур. 1: +15% урона, +10% размера")
+	_check(player.max_hp == 120.0 and player.hp == 120.0, "Сердце ур. 1 поднимает и лечит здоровье")
+	_check(is_equal_approx(player.mods[&"damage_taken_mult"], 0.92), "Латная пластина ур. 1: −8% урона")
+
+	player.hp = 20.0
+	var heal_offered := system.roll(2).any(func(o: CardOffer) -> bool: return o.kind == CardOffer.Kind.HEAL and o.amount == 0.5)
+	_check(heal_offered, "при <25% ОЗ предлагается «Восполнить 50% ОЗ»")
+	player.hp = player.max_hp
+
+	for i in 200:
+		for kind in [CardOffer.Kind.SKILL, CardOffer.Kind.WEAPON, CardOffer.Kind.ITEM]:
+			for data: Resource in system.candidates(kind):
+				system.give(data.id)
+	var rolled := system.roll(2)
+	_check(rolled.size() == 1 and rolled[0].kind == CardOffer.Kind.HEAL, "всё взято и прокачано — лечение")
+	_check(system.roll(10).size() == 1, "на 10-м уровне без предметов стиля — обычная выдача")
+	_free_build(build)
+
+
+func _test_weapon_levels() -> void:
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	system.give(&"orbs")
+	var orbs: OrbitWeapon = player.weapons[&"orbs"]
+	_check(orbs.level == 1 and orbs.orb_count == 2.0 and orbs.damage == 12.0, "сферы ур. 1: 2 сферы, 12 урона")
+	for i in 4:
+		system.give(&"orbs")
+	_check(orbs.level == 5 and orbs.orb_count == 4.0 and orbs.knockback and orbs.orb_size == 1.25, "сферы ур. 5: 4 сферы, отталкивание, размер с 3-го")
+	_check(not system.give(&"orbs"), "выше 5-го уровня оружие не качается")
+	for i in 4:
+		system.give(&"magic_bolt")
+	var bolt: MagicBoltWeapon = player.weapons[&"magic_bolt"]
+	_check(bolt.resonance_every == 4.0 and bolt.projectile_count == 3.0, "снаряд ур. 5: 3 снаряда, каждый 4-й взрывается")
+	system.give(&"quiver")
+	_check(orbs._orb_offsets().size() == 5, "Колчан добавляет сферу")
+	_check(bolt.extra_projectiles() == 0, "Колчан не действует на стартовый снаряд")
+	_free_build(build)
 
 
 func _test_spawn_types() -> void:
@@ -100,40 +149,27 @@ func _test_spawn_types() -> void:
 
 
 func _test_personal_perks() -> void:
-	var player := Player.new()
-	player.projectile_root = self
-	add_child(player)
-	_check(player.character != null and player.character.personal_upgrades.size() == 3, "у волшебника 3 личных навыка")
-	var system := UpgradeSystem.new()
-	system.player = player
-	add_child(system)
-	_check(system.upgrades.size() == 24, "21 общая карта + 3 личных")
-	var by_id := {}
-	for upgrade in system.upgrades:
-		by_id[upgrade.id] = upgrade
-
-	system.apply(by_id[&"mana_shield"])
+	var build := _new_build()
+	var player: Player = build[0]
+	var system: UpgradeSystem = build[1]
+	system.give(&"mana_shield")
 	_check(player.shield == 15.0, "щит ур. 1 держит 15 урона")
 	player.take_damage(10.0)
 	_check(player.hp == 100.0 and player.shield == 5.0, "щит поглощает урон раньше здоровья")
 	player.take_damage(10.0)
 	_check(player.hp == 95.0 and player.shield == 0.0, "остаток урона после щита идёт в здоровье")
 
-	system.apply(by_id[&"flow"])
+	system.give(&"flow")
 	for i in 15:
 		EventBus.enemy_died.emit(Vector2.ZERO, 1)
 	_check(is_equal_approx(player.attack_speed_bonus, 0.12), "«Поток» ур. 1 упирается в +12%")
+	_check(player.cooldown_factor() < 0.9, "«Поток» ускоряет перезарядку оружия")
 	player.take_damage(1.0)
 	_check(player.attack_speed_bonus == 0.0, "урон по здоровью сбрасывает «Поток»")
-
-	system.apply(by_id[&"resonance"])
-	_check(player.resonance_every == 6 and player.resonance_radius == 24.0, "«Резонанс» ур. 1: каждый 6-й, радиус 24")
-	system.apply(by_id[&"resonance"])
-	system.apply(by_id[&"resonance"])
-	_check(player.resonance_every == 4 and player.resonance_radius == 32.0, "«Резонанс» ур. 3: каждый 4-й, радиус 32")
-	_check(not system.is_available(by_id[&"resonance"]), "навык выше 3-го уровня не предлагается")
-	system.free()
-	player.free()
+	system.give(&"flow")
+	system.give(&"flow")
+	_check(not system.give(&"flow"), "навык выше 3-го уровня не качается")
+	_free_build(build)
 
 
 func _test_settings() -> void:

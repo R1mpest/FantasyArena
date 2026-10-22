@@ -1,16 +1,28 @@
-class_name AutoWeapon
-extends Node2D
-## Стартовое оружие «Магический снаряд». В режиме «Автоматически» само стреляет
-## в ближайшего врага, в режиме «По мыши» — в сторону курсора (или правого стика геймпада).
+class_name MagicBoltWeapon
+extends Weapon
+## «Магический снаряд» — стартовое оружие мага. В режиме «Автоматически» стреляет
+## в ближайшего врага, в режиме «По мыши» — к курсору (или по правому стику геймпада).
+## На 5-м уровне каждый N-й снаряд взрывается при попадании.
 
 ## Угол между снарядами одного залпа, радианы (~12°).
 const SPREAD := 0.21
+const PROJECTILE_SPEED := 260.0
+const BASE_RANGE := 200.0
 
-var player: Player
+var damage := 14.0
+var fire_interval := 0.7
+var projectile_count := 1.0
+var pierce := 0.0
+var resonance_every := 0.0
+var resonance_radius := 0.0
 
 var _cooldown := 0.5
-## Сколько снарядов выпущено за забег (для «Резонанса»).
+## Сколько снарядов выпущено за забег (для взрыва каждого N-го).
 var _shots := 0
+
+
+func attack_range() -> float:
+	return BASE_RANGE * area()
 
 
 func _physics_process(delta: float) -> void:
@@ -22,7 +34,7 @@ func _physics_process(delta: float) -> void:
 	var aim := _aim_direction()
 	if aim == Vector2.ZERO:
 		return
-	_cooldown = player.fire_interval / player.attack_speed()
+	_cooldown = cooldown_of(fire_interval)
 	_fire(aim)
 
 
@@ -60,7 +72,7 @@ func _manual_aim() -> Vector2:
 
 func _nearest_enemy() -> Enemy:
 	var best: Enemy = null
-	var best_distance := player.attack_range * player.attack_range
+	var best_distance := attack_range() * attack_range()
 	for node in get_tree().get_nodes_in_group(&"enemies"):
 		var enemy := node as Enemy
 		if enemy.dead:
@@ -73,15 +85,16 @@ func _nearest_enemy() -> Enemy:
 
 
 func _fire(aim: Vector2) -> void:
-	var count := int(player.projectile_count)
+	var count := int(projectile_count)
 	for i in count:
 		var projectile := Projectile.new()
 		projectile.position = global_position
-		projectile.velocity = aim.rotated((i - (count - 1) / 2.0) * SPREAD) * player.projectile_speed
-		projectile.damage = player.damage * player.might
-		projectile.pierce = int(player.pierce)
-		projectile.lifetime = player.attack_range / player.projectile_speed * 1.3
+		projectile.velocity = aim.rotated((i - (count - 1) / 2.0) * SPREAD) * PROJECTILE_SPEED
+		projectile.damage = damage_of(damage)
+		projectile.pierce = int(pierce)
+		projectile.lifetime = attack_range() / PROJECTILE_SPEED * 1.3
+		projectile.source = data.id
 		_shots += 1
-		if player.resonance_every > 0 and _shots % player.resonance_every == 0:
-			projectile.blast_radius = player.resonance_radius
+		if resonance_every > 0.0 and _shots % int(resonance_every) == 0:
+			projectile.blast_radius = resonance_radius * area()
 		player.projectile_root.add_child(projectile)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_big_blue.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/orbit_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"orbs"
+title = "Магические сферы"
+description = "Сферы кружат вокруг героя и бьют всех, кого заденут"
+icon = ExtResource("2_icon")
+pool = 1
+weapon_script = ExtResource("3_script")
+uses_quiver = true
+levels = Array[Dictionary]([{"damage": 12.0, "orb_count": 2.0, "orb_size": 1.0, "rotation_speed": 2.6, "knockback": false, "text": "2 сферы, 12 урона"}, {"orb_count": 3.0, "text": "+1 сфера"}, {"orb_size": 1.25, "rotation_speed": 3.12, "text": "+25% размера, +20% скорости вращения"}, {"damage": 15.6, "text": "+30% урона"}, {"orb_count": 4.0, "knockback": true, "text": "+1 сфера, сферы отталкивают врагов"}])

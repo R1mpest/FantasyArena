@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://data/item_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_big_yellow.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"hourglass"
+title = "Песочные часы"
+icon = ExtResource("2_icon")
+kind = 0
+weight = 1.0
+levels = Array[Dictionary]([{"cooldown_mult": 0.92, "text": "Перезарядка всего оружия −8%"}, {"cooldown_mult": 0.846, "text": "Перезарядка всего оружия −15%"}, {"cooldown_mult": 0.779, "text": "Перезарядка всего оружия −22%"}, {"cooldown_mult": 0.716, "text": "Перезарядка всего оружия −28%"}, {"cooldown_mult": 0.659, "text": "Перезарядка всего оружия −34%"}])

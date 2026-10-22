@@ -9,6 +9,8 @@ var pierce := 0
 var lifetime := 1.0
 ## Больше нуля — снаряд «Резонанса»: при первом попадании взрывается с этим радиусом.
 var blast_radius := 0.0
+## id оружия, выпустившего снаряд.
+var source: StringName
 
 var _spent := false
 
@@ -45,10 +47,11 @@ func _on_body_entered(body: Node2D) -> void:
 	var enemy := body as Enemy
 	if _spent or enemy == null or enemy.dead:
 		return
-	enemy.take_damage(damage, velocity.normalized())
+	enemy.take_damage(damage, velocity.normalized(), source)
 	if blast_radius > 0.0:
 		var blast := Blast.new()
 		blast.damage = damage
+		blast.source = source
 		blast.radius = blast_radius
 		blast.position = enemy.center()
 		get_parent().add_child.call_deferred(blast)

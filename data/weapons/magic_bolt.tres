@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/0x72/frames/flask_blue.png" id="2_icon"]
+[ext_resource type="Script" path="res://scenes/weapons/magic_bolt_weapon.gd" id="3_script"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"magic_bolt"
+title = "Магический снаряд"
+description = "Снаряд летит в ближайшего врага"
+icon = ExtResource("2_icon")
+pool = 0
+weapon_script = ExtResource("3_script")
+uses_quiver = false
+levels = Array[Dictionary]([{"damage": 14.0, "fire_interval": 0.7, "projectile_count": 1.0, "pierce": 0.0, "resonance_every": 0.0, "resonance_radius": 0.0, "text": "1 снаряд, 14 урона, раз в 0,7 с"}, {"projectile_count": 2.0, "text": "+1 снаряд в залпе"}, {"damage": 17.5, "pierce": 1.0, "text": "+25% урона, снаряд пробивает 1 врага"}, {"projectile_count": 3.0, "fire_interval": 0.6, "text": "+1 снаряд, перезарядка −15%"}, {"damage": 21.9, "resonance_every": 4.0, "resonance_radius": 32.0, "text": "Каждый 4-й снаряд взрывается при попадании (радиус 32), +25% урона"}])
