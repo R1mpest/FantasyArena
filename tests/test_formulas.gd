@@ -328,7 +328,7 @@ func _test_bosses() -> void:
 	GameState.elapsed = 300.0
 	spawner.check_bosses()
 	var ogre: Boss = get_tree().get_first_node_in_group(&"bosses")
-	_check(ogre is OgreChief and ogre.hp == 1500.0, "на 5:00 появляется Огр-вожак с 1500 ОЗ")
+	_check(ogre is OgreChief and ogre.hp == 2250.0, "на 5:00 появляется Огр-вожак с 2250 ОЗ")
 	ogre.freeze(1.0)
 	ogre.push(Vector2(500, 0))
 	_check(not ogre.is_frozen() and ogre._knockback == Vector2.ZERO, "босс не замерзает и не отбрасывается")
