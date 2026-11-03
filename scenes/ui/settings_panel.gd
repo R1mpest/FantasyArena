@@ -6,7 +6,8 @@ signal closed
 
 const WINDOW_MODES := ["В окне", "Полный экран", "Окно без рамки"]
 const BUS_TITLES := {&"Master": "Общая громкость", &"Music": "Музыка", &"SFX": "Эффекты"}
-const AIM_MODES := ["Автоматически — в ближайшего врага", "По направлению мыши"]
+const AIM_MODES := ["Автоматически — в ближайшего врага", "Мышью или правым стиком"]
+const AIM_MODES_TOUCH := ["Автоматически — в ближайшего врага", "Правым джойстиком"]
 
 var _root: Control
 var _window_mode: OptionButton
@@ -29,26 +30,31 @@ func _ready() -> void:
 	grid.add_theme_constant_override(&"v_separation", 6)
 	box.add_child(grid)
 
-	_section(grid, "Экран")
-	_window_mode = _option(grid, "Режим окна", WINDOW_MODES)
-	_window_mode.item_selected.connect(func(index: int) -> void:
-		SaveManager.set_window_mode(index)
-		_refresh())
-	_resolutions = SaveManager.available_resolutions()
-	_resolution = _option(grid, "Разрешение", _resolutions.map(func(size: Vector2i) -> String: return "%d × %d" % [size.x, size.y]))
-	_resolution.item_selected.connect(func(index: int) -> void: SaveManager.set_resolution(_resolutions[index]))
+	# На телефоне окно не настраивается, а ручной прицел — правый джойстик вместо мыши.
+	var desktop := not SaveManager.is_mobile()
+	if desktop:
+		_section(grid, "Экран")
+		_window_mode = _option(grid, "Режим окна", WINDOW_MODES)
+		_window_mode.item_selected.connect(func(index: int) -> void:
+			SaveManager.set_window_mode(index)
+			_refresh())
+		_resolutions = SaveManager.available_resolutions()
+		_resolution = _option(grid, "Разрешение", _resolutions.map(func(size: Vector2i) -> String: return "%d × %d" % [size.x, size.y]))
+		_resolution.item_selected.connect(func(index: int) -> void: SaveManager.set_resolution(_resolutions[index]))
 
 	_section(grid, "Звук")
 	for bus in SaveManager.BUSES:
 		_slider(grid, bus)
 
 	_section(grid, "Управление")
-	_aim = _option(grid, "Прицеливание", AIM_MODES)
+	_aim = _option(grid, "Прицеливание", AIM_MODES if desktop else AIM_MODES_TOUCH)
 	_aim.item_selected.connect(func(index: int) -> void: SaveManager.set_aim_mode(index))
 
 	var back := UiKit.button("Назад (Esc)")
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(close)
+	if _first_focus == null:
+		_first_focus = back
 	box.add_child(back)
 	add_child(_root)
 	_root.hide()
@@ -70,12 +76,14 @@ func close() -> void:
 
 
 func _refresh() -> void:
+	_aim.select(SaveManager.aim_mode)
+	if _window_mode == null:
+		return
 	_window_mode.select(SaveManager.window_mode)
 	var index := _resolutions.find(SaveManager.resolution)
 	_resolution.select(index if index >= 0 else 0)
 	# В полноэкранных режимах игра идёт в разрешении экрана.
 	_resolution.disabled = SaveManager.window_mode != SaveManager.WindowMode.WINDOWED
-	_aim.select(SaveManager.aim_mode)
 
 
 func _section(grid: GridContainer, title: String) -> void:

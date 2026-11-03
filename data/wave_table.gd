@@ -9,6 +9,10 @@ extends Resource
 @export var minutes: Array[Dictionary] = []
 ## {"time": секунды забега, "enemy": id врага-босса}.
 @export var bosses: Array[Dictionary] = []
+## События арены: {"time", "type": "line" | "pack", "enemy", "count", ...}.
+## line — шеренга от одной стены поперёк арены ("speed", "gap" — ширина дыры в строю);
+## pack — стая из одних ворот летит через точку, где был герой ("speed_mult").
+@export var events: Array[Dictionary] = []
 
 
 func segment_at(minute: float) -> Dictionary:

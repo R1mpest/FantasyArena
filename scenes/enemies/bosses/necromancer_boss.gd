@@ -46,7 +46,7 @@ func _boss_process(delta: float) -> void:
 	if _fan <= 0.0:
 		_fan = FAN_INTERVAL
 		for i in FAN_COUNT:
-			shoot(direction.rotated((i - (FAN_COUNT - 1) / 2.0) * FAN_SPREAD), SHOT_SPEED, SHOT_DAMAGE, MAGIC)
+			shoot(direction.rotated((i - (FAN_COUNT - 1) / 2.0) * FAN_SPREAD), SHOT_SPEED, SHOT_DAMAGE, MAGIC, "res://assets/sprites/spells/darkness_bolt.png")
 
 	_summon -= delta
 	if _summon <= 0.0:

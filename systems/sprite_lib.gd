@@ -38,6 +38,67 @@ static func make_sprite(anims: Dictionary, fps: float = 8.0) -> AnimatedSprite2D
 	return sprite
 
 
+## Анимация из горизонтальной полосы кадров (пак заклинаний: кадры квадратные, по высоте полосы).
+static func strip(path: String, fps: float = 12.0) -> SpriteFrames:
+	var key := "strip:" + path
+	if _cache.has(key):
+		return _cache[key]
+	var sheet: Texture2D = load(path)
+	var size := int(sheet.get_height())
+	var sprite_frames := SpriteFrames.new()
+	sprite_frames.set_animation_speed(&"default", fps)
+	for i in int(sheet.get_width() / size):
+		var frame := AtlasTexture.new()
+		frame.atlas = sheet
+		frame.region = Rect2(i * size, 0, size, size)
+		sprite_frames.add_frame(&"default", frame)
+	_cache[key] = sprite_frames
+	return sprite_frames
+
+
+static func strip_sprite(path: String, fps: float = 12.0) -> AnimatedSprite2D:
+	var sprite := AnimatedSprite2D.new()
+	sprite.sprite_frames = strip(path, fps)
+	sprite.play(&"default")
+	return sprite
+
+
+const PACK_DIR := "res://assets/sprites/fantasy_arena/"
+
+
+## Спрайт из пака Fantasy Arena по пути внутри пака (например, "pickups/heal_plus").
+## Текстура держится в кэше: если её рисуют через draw_texture и нигде не хранят,
+## Godot освобождает её сразу после отрисовки, и вместо картинки остаётся белый квадрат.
+static func pack(name: String) -> Texture2D:
+	var key := "tex:" + name
+	if not _cache.has(key):
+		_cache[key] = load(PACK_DIR + name + ".png")
+	return _cache[key]
+
+
+## Анимация из кадров пака Fantasy Arena: name_f0.png, name_f1.png, ...
+static func pack_frames(name: String, fps: float, loop: bool = true) -> SpriteFrames:
+	var key := "pack:%s@%s" % [name, fps]
+	if _cache.has(key):
+		return _cache[key]
+	var sprite_frames := SpriteFrames.new()
+	sprite_frames.set_animation_speed(&"default", fps)
+	sprite_frames.set_animation_loop(&"default", loop)
+	var i := 0
+	while ResourceLoader.exists("%s%s_f%d.png" % [PACK_DIR, name, i]):
+		sprite_frames.add_frame(&"default", load("%s%s_f%d.png" % [PACK_DIR, name, i]))
+		i += 1
+	_cache[key] = sprite_frames
+	return sprite_frames
+
+
+static func pack_sprite(name: String, fps: float, loop: bool = true) -> AnimatedSprite2D:
+	var sprite := AnimatedSprite2D.new()
+	sprite.sprite_frames = pack_frames(name, fps, loop)
+	sprite.play(&"default")
+	return sprite
+
+
 static func texture(name: String) -> Texture2D:
 	return load(FRAMES_DIR + name + ".png")
 

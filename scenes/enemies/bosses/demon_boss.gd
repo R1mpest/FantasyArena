@@ -31,6 +31,7 @@ func _boss_process(delta: float) -> void:
 	if not enraged and hp < full_hp * ENRAGE_AT:
 		enraged = true
 		flash_blast(center(), 60.0, FIRE)
+		Sfx.play(&"demon_phase", 0.0)
 	var rate := ENRAGED_RATE if enraged else 1.0
 	walk_toward(target.global_position, delta, ENRAGED_SPEED if enraged else 1.0)
 
@@ -62,12 +63,12 @@ func _fire_ring() -> void:
 	for i in RING_COUNT:
 		if (i - gap_start + RING_COUNT) % RING_COUNT < RING_GAP:
 			continue
-		shoot(Vector2.from_angle(offset + TAU * i / RING_COUNT), RING_SPEED, RING_DAMAGE, FIRE)
+		shoot(Vector2.from_angle(offset + TAU * i / RING_COUNT), RING_SPEED, RING_DAMAGE, FIRE, "res://assets/sprites/spells/firebomb.png")
 
 
 func _meteor_hit(point: Vector2) -> void:
 	if dead:
 		return
-	flash_blast(point, METEOR_RADIUS, FIRE)
+	flash_blast(point, METEOR_RADIUS, FIRE, true)
 	if hits_hero(point, METEOR_RADIUS):
 		hero().take_damage(METEOR_DAMAGE)

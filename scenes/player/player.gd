@@ -54,6 +54,9 @@ var arcane_spread := false
 
 ## Куда оружие добавляет снаряды.
 var projectile_root: Node
+## Арена: за её стены герой не выходит (null — бесконечное поле).
+var arena: ArenaBuilder
+var camera: Camera2D
 ## id оружия -> узел Weapon (включая стартовое).
 var weapons: Dictionary = {}
 ## id предмета -> уровень; данные предметов — в item_data.
@@ -93,7 +96,7 @@ func _ready() -> void:
 	_hurtbox.add_child(_circle_shape(CollisionShape2D.new(), 7.0, Vector2(0, -9)))
 	add_child(_hurtbox)
 
-	var camera := Camera2D.new()
+	camera = Camera2D.new()
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 10.0
 	add_child(camera)
@@ -110,6 +113,9 @@ func _physics_process(delta: float) -> void:
 	var direction := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 	velocity = direction * move_speed
 	move_and_slide()
+	if arena != null:
+		# Отступ 8 — половина ширины спрайта, чтобы герой не заходил на кладку.
+		global_position = arena.clamp_inside(global_position, 8.0)
 	if direction.x != 0.0:
 		_sprite.flip_h = direction.x < 0.0
 	_sprite.play(&"run" if direction != Vector2.ZERO else &"idle")
@@ -302,10 +308,12 @@ func _apply_damage(amount: float) -> void:
 		if shield <= 0.0:
 			shield = 0.0
 			shield_broken.emit()
+			Sfx.play(&"shield_break")
 	if amount <= 0.0:
 		return
 	hp -= amount
 	hp_lost.emit(amount)
+	Sfx.play(&"hurt")
 	if hp <= 0.0:
 		_die()
 

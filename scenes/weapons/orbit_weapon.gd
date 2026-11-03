@@ -16,6 +16,7 @@ var knockback := false
 var _angle := 0.0
 ## instance_id врага -> время забега, когда его снова можно ударить.
 var _next_hit: Dictionary = {}
+var _sprites: Array[Sprite2D] = []
 
 
 func _ready() -> void:
@@ -44,12 +45,26 @@ func _physics_process(delta: float) -> void:
 				_next_hit.erase(id)
 
 
+func _process(_delta: float) -> void:
+	var offsets := _orb_offsets()
+	while _sprites.size() < offsets.size():
+		var sprite := Sprite2D.new()
+		sprite.texture = SpriteLib.pack("projectiles/orb")
+		add_child(sprite)
+		_sprites.append(sprite)
+	# Кадр спрайта 16 px, сфера в нём около 10 px — подгоняем под радиус удара.
+	var scale_to_radius := _orb_radius() * 2.0 / 10.0
+	for i in _sprites.size():
+		_sprites[i].visible = i < offsets.size()
+		if i < offsets.size():
+			_sprites[i].position = offsets[i]
+			_sprites[i].scale = Vector2.ONE * scale_to_radius
+
+
 func _draw() -> void:
 	var radius := _orb_radius()
 	for offset in _orb_offsets():
-		draw_circle(offset, radius * 1.7, Color(0.35, 0.8, 1.0, 0.18))
-		draw_circle(offset, radius, Color(0.4, 0.85, 1.0))
-		draw_circle(offset + Vector2(-radius, -radius) * 0.25, radius * 0.45, Color(0.9, 0.98, 1.0))
+		draw_circle(offset, radius * 1.6, Color(0.6, 0.4, 1.0, 0.15))
 
 
 func _orb_radius() -> float:

@@ -40,4 +40,6 @@ func _physics_process(delta: float) -> void:
 func _target(near: Array[Enemy], index: int) -> Vector2:
 	if index < near.size():
 		return near[index].center()
-	return player.global_position + Vector2.from_angle(randf() * TAU) * randf_range(40.0, 120.0)
+	var point := player.global_position + Vector2.from_angle(randf() * TAU) * randf_range(40.0, 120.0)
+	# Рядом со стеной случайная точка могла бы оказаться на трибунах.
+	return player.arena.clamp_inside(point, 12.0) if player.arena != null else point

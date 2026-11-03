@@ -25,6 +25,7 @@ func _physics_process(delta: float) -> void:
 	if near.is_empty():
 		return
 	_cooldown = cooldown_of(interval)
+	Sfx.play(&"lightning")
 	near.sort_custom(func(a: Enemy, b: Enemy) -> bool:
 		return origin.distance_squared_to(a.center()) < origin.distance_squared_to(b.center()))
 	var hit := {}

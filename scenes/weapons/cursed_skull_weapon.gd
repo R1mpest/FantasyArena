@@ -26,6 +26,7 @@ func _physics_process(delta: float) -> void:
 	if targets.is_empty():
 		return
 	_cooldown = cooldown_of(interval)
+	Sfx.play(&"skull")
 	targets.sort_custom(_tougher)
 	for i in mini(1 + extra_projectiles(), targets.size()):
 		var skull := SkullProjectile.new()

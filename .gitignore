@@ -4,3 +4,5 @@ build/
 *.tmp
 autoplay.log
 tests.log
+# Музыка AlkaKrab: лицензия не разрешает выкладывать файлы в открытый репозиторий.
+assets/music/

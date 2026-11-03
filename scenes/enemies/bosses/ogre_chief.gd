@@ -62,7 +62,8 @@ func _start_attack() -> void:
 func _slam() -> void:
 	if dead:
 		return
-	flash_blast(center(), SLAM_RADIUS, Color(1.0, 0.55, 0.2))
+	flash_blast(center(), SLAM_RADIUS, Color(1.0, 0.55, 0.2), true)
+	Sfx.play(&"ogre_slam")
 	if hits_hero(center(), SLAM_RADIUS):
 		hero().take_damage(SLAM_DAMAGE)
 

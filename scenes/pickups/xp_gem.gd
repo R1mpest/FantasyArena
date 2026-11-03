@@ -35,13 +35,17 @@ func _process(delta: float) -> void:
 		queue_free()
 
 
+## Номиналы по README пака: 1–4 синий, 5–19 зелёный, 20–99 золотой, 100+ красный.
+static func texture_for(amount: int) -> Texture2D:
+	if amount >= 100:
+		return SpriteLib.pack("pickups/xp_gem_4_red")
+	if amount >= 20:
+		return SpriteLib.pack("pickups/xp_gem_3_gold")
+	if amount >= 5:
+		return SpriteLib.pack("pickups/xp_gem_2_green")
+	return SpriteLib.pack("pickups/xp_gem_1_blue")
+
+
 func _draw() -> void:
-	var color := Color(0.35, 0.65, 1.0)
-	if value >= 5:
-		color = Color(1.0, 0.35, 0.4)
-	elif value >= 2:
-		color = Color(0.4, 0.95, 0.5)
-	var points := PackedVector2Array([Vector2(0, -4), Vector2(3, 0), Vector2(0, 4), Vector2(-3, 0)])
-	draw_colored_polygon(points, color)
-	points.append(points[0])
-	draw_polyline(points, color.darkened(0.5), 1.0)
+	draw_texture(texture_for(value), Vector2(-4, -4))
+

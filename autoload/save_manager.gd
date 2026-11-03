@@ -87,9 +87,26 @@ func set_aim_mode(mode: AimMode) -> void:
 	_changed()
 
 
+## На телефоне окно всегда во весь экран; ручной прицел там — правый джойстик (AimMode.MOUSE).
+func is_mobile() -> bool:
+	return OS.has_feature("mobile")
+
+
 func apply_display() -> void:
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" or is_mobile():
 		return
+	# Для автопрогонов со снимками: окно в углу экрана (по умолчанию 640×360, --small-window=1280x720 —
+	# свой размер), сохранённые настройки не трогаем.
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--small-window" or arg.begins_with("--small-window="):
+			var size := Vector2i(640, 360)
+			if "=" in arg:
+				var parts := arg.get_slice("=", 1).split("x")
+				size = Vector2i(int(parts[0]), int(parts[1]))
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_size(size)
+			DisplayServer.window_set_position(Vector2i(0, 0))
+			return
 	match window_mode:
 		WindowMode.FULLSCREEN:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)

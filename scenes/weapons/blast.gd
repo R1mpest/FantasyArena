@@ -8,12 +8,16 @@ var damage := 10.0
 var radius := 24.0
 var color := Color(0.75, 0.55, 1.0)
 var source: StringName
+## Огненный взрыв рисуется анимацией из пака, магический — кольцом цвета color.
+var fire := false
 
 var _time := 0.0
 
 
 func _ready() -> void:
 	z_index = 1
+	if fire:
+		SpriteFx.spawn(get_parent(), position, "effects/explosion", 15.0, radius * 2.0)
 	if damage <= 0.0:
 		return
 	for enemy in Enemy.in_radius(get_tree(), global_position, radius):
@@ -28,6 +32,8 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if fire:
+		return
 	var progress := _time / DURATION
 	draw_circle(Vector2.ZERO, radius * (0.5 + 0.5 * progress), Color(color, 0.45 * (1.0 - progress)))
 	draw_arc(Vector2.ZERO, radius * (0.7 + 0.3 * progress), 0.0, TAU, 32, Color(color.lightened(0.4), 1.0 - progress), 1.5)

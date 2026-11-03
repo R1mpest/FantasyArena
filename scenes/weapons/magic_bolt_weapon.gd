@@ -19,6 +19,12 @@ var resonance_radius := 0.0
 var _cooldown := 0.5
 ## Сколько снарядов выпущено за забег (для взрыва каждого N-го).
 var _shots := 0
+## Последнее направление правого джойстика: отпущенный прицел стреляет туда же.
+var _touch_aim := Vector2.RIGHT
+## Последнее направление правого стика геймпада (ZERO — стиком не целились) и где тогда была
+## мышь: пока мышь не сдвинулась, отпущенный стик держит направление.
+var _stick_aim := Vector2.ZERO
+var _mouse_at := Vector2.ZERO
 
 
 func attack_range() -> float:
@@ -63,11 +69,32 @@ func _aim_direction() -> Vector2:
 
 
 func _manual_aim() -> Vector2:
-	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
-	if stick.length() > 0.35:
-		return stick.normalized()
+	var mouse := get_viewport().get_mouse_position()
+	var stick := _right_stick()
+	if stick != Vector2.ZERO:
+		_stick_aim = stick
+		_mouse_at = mouse
+		return stick
+	if _stick_aim != Vector2.ZERO:
+		if mouse.distance_to(_mouse_at) < 2.0:
+			return _stick_aim
+		_stick_aim = Vector2.ZERO
+	# На сенсорном экране мыши нет: прицел — правый джойстик, отпущенный держит последнее направление.
+	if TouchControls.wanted():
+		if TouchControls.aim != Vector2.ZERO:
+			_touch_aim = TouchControls.aim
+		return _touch_aim
 	var to_mouse := get_global_mouse_position() - global_position
 	return to_mouse.normalized() if to_mouse.length() > 1.0 else Vector2.RIGHT
+
+
+## Правый стик первого геймпада, где он отклонён; ZERO — ни один не отклонён.
+func _right_stick() -> Vector2:
+	for device in Input.get_connected_joypads():
+		var stick := Vector2(Input.get_joy_axis(device, JOY_AXIS_RIGHT_X), Input.get_joy_axis(device, JOY_AXIS_RIGHT_Y))
+		if stick.length() > 0.35:
+			return stick.normalized()
+	return Vector2.ZERO
 
 
 func _nearest_enemy() -> Enemy:
@@ -86,6 +113,7 @@ func _nearest_enemy() -> Enemy:
 
 func _fire(aim: Vector2) -> void:
 	var count := int(projectile_count)
+	Sfx.play(&"bolt")
 	for i in count:
 		var projectile := Projectile.new()
 		projectile.position = global_position

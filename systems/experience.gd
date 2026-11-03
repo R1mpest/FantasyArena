@@ -33,6 +33,8 @@ func add_xp(amount: int) -> void:
 
 
 func _on_enemy_died(at: Vector2, value: int) -> void:
+	if value <= 0:
+		return
 	var gem := XpGem.new()
 	gem.value = roundi(value * player.mods[&"xp_mult"]) if player != null else value
 	gem.position = at + Vector2(0, -4)

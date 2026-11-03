@@ -18,3 +18,6 @@ signal boss_spawned(boss: Node2D)
 signal boss_defeated(boss: Node2D, final: bool)
 @warning_ignore("unused_signal")
 signal victory
+## Событие арены вот-вот начнётся (заголовок для надписи на экране).
+@warning_ignore("unused_signal")
+signal arena_event(title: String)

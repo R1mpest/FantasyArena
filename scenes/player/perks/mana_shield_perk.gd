@@ -8,10 +8,16 @@ const KNOCKBACK_FORCE := 240.0
 const BUBBLE_RADIUS := 13.0
 
 var _burst := 0.0
+var _bubble: AnimatedSprite2D
 
 
 func _ready() -> void:
 	z_index = 1
+	_bubble = SpriteLib.strip_sprite("res://assets/sprites/spells/shield.png", 8.0)
+	_bubble.position = Vector2(0, -10)
+	# Кадр 48 px, пузырь — под радиус BUBBLE_RADIUS.
+	_bubble.scale = Vector2.ONE * BUBBLE_RADIUS * 2.0 / 40.0
+	add_child(_bubble)
 	player.shield_broken.connect(_on_shield_broken)
 
 
@@ -40,10 +46,9 @@ func _on_shield_broken() -> void:
 
 func _draw() -> void:
 	var center := Vector2(0, -10)
+	_bubble.visible = player.shield > 0.0
 	if player.shield > 0.0:
-		var fill := player.shield / player.shield_max
-		draw_circle(center, BUBBLE_RADIUS, Color(0.4, 0.75, 1.0, 0.08 + 0.1 * fill))
-		draw_arc(center, BUBBLE_RADIUS, 0.0, TAU, 32, Color(0.6, 0.85, 1.0, 0.35 + 0.45 * fill), 1.0)
+		_bubble.modulate.a = 0.2 + 0.3 * player.shield / player.shield_max
 	if _burst > 0.0:
 		var radius := lerpf(BUBBLE_RADIUS, KNOCKBACK_RADIUS, 1.0 - _burst)
 		draw_arc(center, radius, 0.0, TAU, 48, Color(0.6, 0.85, 1.0, _burst), 2.0)

@@ -27,11 +27,15 @@ static var _outline_material: ShaderMaterial
 var data: EnemyData
 ## Множитель сложности k(t) на момент появления.
 var k := 1.0
+## Множитель урона d(t) на момент появления (касание, выстрелы, взрыв).
+var damage_k := 1.0
 var target: Node2D
 ## Элитная версия: задаёт спавнер до добавления в сцену.
 var elite := false
-## Если враг отстал дальше этого расстояния, он переносится ближе к игроку.
+## Без арены: если враг отстал дальше этого расстояния, он переносится ближе к игроку.
 var respawn_radius := 400.0
+## Арена: враг не выходит за её стены; переносить отставших не нужно.
+var arena: ArenaBuilder
 ## Сетка для расталкивания; без неё враги проходят друг сквозь друга.
 var grid: EnemyGrid
 
@@ -64,6 +68,14 @@ var _curse_blast_radius := 0.0
 var _speed_mult := 1.0
 ## Взрывной враг: сколько осталось до взрыва (меньше нуля — фитиль не горит).
 var _fuse := -1.0
+## Марш (события арены): идёт в направлении march_direction со скоростью march_speed,
+## не расталкивается со строем; упёрся в стену — дальше идёт на героя как обычно.
+var march_direction := Vector2.ZERO
+var march_speed := 0.0
+## Шанс, что после смерти выпадет кристалл опыта (у врагов из событий — 0,5).
+var xp_chance := 1.0
+## Время забега, когда враг сам растворяется без опыта (кольцо «Окружения» дошло до центра).
+var vanish_at := INF
 
 
 func _ready() -> void:
@@ -80,7 +92,9 @@ func _ready() -> void:
 	_frame = randi() % SEPARATION_EVERY
 	# Здоровье боссов задано в данных как есть, без k(t), чтобы бой было проще настроить.
 	hp = data.max_hp if data.is_boss else data.max_hp * k
-	contact_dps = data.contact_dps
+	if data.is_boss:
+		damage_k = 1.0
+	contact_dps = data.contact_dps * damage_k
 	if data.size_scale != 1.0:
 		scale = Vector2.ONE * data.size_scale
 
@@ -102,6 +116,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_tick_flash(delta)
 	_tick_status(delta)
+	if GameState.elapsed >= vanish_at:
+		_vanish()
+		return
 	if _frozen_time > 0.0:
 		_frozen_time -= delta
 		if _frozen_time <= 0.0:
@@ -114,8 +131,11 @@ func _physics_process(delta: float) -> void:
 	if data.explode_damage > 0.0 and to_target.length() < data.radius + 14.0:
 		_fuse = FUSE_TIME
 		return
-	if not data.is_boss and to_target.length_squared() > respawn_radius * respawn_radius * 2.25:
+	if arena == null and not data.is_boss and to_target.length_squared() > respawn_radius * respawn_radius * 2.25:
 		global_position = target.global_position + Vector2.from_angle(randf() * TAU) * respawn_radius
+		return
+	if march_speed > 0.0:
+		_march(delta)
 		return
 	var direction := to_target.normalized()
 	var move := direction
@@ -128,7 +148,39 @@ func _physics_process(delta: float) -> void:
 	velocity = move * data.speed * _speed_mult * (1.0 - _slow) + _separation * SEPARATION_SPEED + _knockback
 	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
 	global_position += velocity * delta
+	keep_in_arena()
 	_sprite.flip_h = direction.x < 0.0
+
+
+## Возвращает true, если враг упёрся в стену и его вытолкнуло обратно на поле.
+func keep_in_arena() -> bool:
+	if arena == null:
+		return false
+	var inside := arena.clamp_inside(global_position, data.radius * scale.x)
+	var pushed := inside.distance_squared_to(global_position) > 0.25
+	global_position = inside
+	return pushed
+
+
+func _march(delta: float) -> void:
+	velocity = march_direction * march_speed * (1.0 - _slow) + _knockback
+	_knockback = _knockback.move_toward(Vector2.ZERO, 400.0 * delta)
+	global_position += velocity * delta
+	_sprite.flip_h = march_direction.x < 0.0
+	if keep_in_arena():
+		march_speed = 0.0
+
+
+## Растворяется за четверть секунды: урона уже не наносит, оружие его не видит.
+func _vanish() -> void:
+	vanish_at = INF
+	dead = true
+	march_speed = 0.0
+	remove_from_group(&"enemies")
+	collision_layer = 0
+	var tween := create_tween()
+	tween.tween_property(self, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(queue_free)
 
 
 ## Таймеры метки и замедления (общие для обычных врагов и боссов).
@@ -182,8 +234,11 @@ func _try_shoot(delta: float, distance: float) -> void:
 	var shot := EnemyProjectile.new()
 	shot.position = center()
 	shot.velocity = center().direction_to(target.global_position + Vector2(0, -10)) * data.shot_speed
-	shot.damage = data.shot_damage * (ELITE_DAMAGE if elite else 1.0)
+	shot.damage = data.shot_damage * damage_k * (ELITE_DAMAGE if elite else 1.0)
+	shot.sprite = "projectiles/orb"
+	shot.tint = Color(0.55, 1.0, 0.45)
 	get_parent().add_child(shot)
+	Sfx.play(&"enemy_shot")
 
 
 ## Замедляет на долю amount (0.25 = −25% скорости) на duration секунд; сильное замедление важнее.
@@ -295,8 +350,8 @@ func _make_elite() -> void:
 
 func explode_damage() -> float:
 	if not elite:
-		return data.explode_damage
-	return data.elite_explode_damage if data.elite_explode_damage > 0.0 else data.explode_damage * ELITE_DAMAGE
+		return data.explode_damage * damage_k
+	return (data.elite_explode_damage if data.elite_explode_damage > 0.0 else data.explode_damage * ELITE_DAMAGE) * damage_k
 
 
 ## Фитиль взрывного врага: мигает, стоит на месте, потом взрывается и исчезает без опыта.
@@ -307,6 +362,7 @@ func _burn_fuse(delta: float) -> void:
 	if _fuse > 0.0 or dead:
 		return
 	dead = true
+	Sfx.play(&"explosion")
 	var player := target as Player
 	var radius := data.explode_radius * scale.x
 	if player != null and player.global_position.distance_to(center()) <= radius + 6.0:
@@ -316,6 +372,7 @@ func _burn_fuse(delta: float) -> void:
 	blast.radius = radius
 	blast.color = Color(1.0, 0.55, 0.2)
 	blast.position = center()
+	blast.fire = true
 	get_parent().add_child.call_deferred(blast)
 	queue_free()
 
@@ -330,7 +387,9 @@ func _draw() -> void:
 		var pulse := 0.5 + 0.5 * sin(GameState.elapsed * 6.0)
 		draw_arc(Vector2.ZERO, data.radius + 3.0, 0.0, TAU, 24, Color(1.0, 0.8, 0.3, 0.4 + 0.4 * pulse), 1.0)
 	if _fuse >= 0.0:
-		draw_arc(center() - global_position, data.explode_radius, 0.0, TAU, 32, Color(1.0, 0.4, 0.2, 0.7), 1.0)
+		var warning := SpriteLib.pack("ui/warning_circle_f%d" % (int(_fuse * 8.0) % 2))
+		var size := data.explode_radius * 2.0 / scale.x
+		draw_texture_rect(warning, Rect2((center() - global_position) / scale.x - Vector2(size, size) / 2.0, Vector2(size, size)), false)
 	if not is_marked():
 		return
 	var top := Vector2(0, _head_y)
@@ -371,6 +430,7 @@ func take_damage(amount: float, from_direction: Vector2 = Vector2.ZERO, source: 
 		dead = true
 		_spread_mark()
 		_curse_explode()
-		EventBus.enemy_died.emit(global_position, Formulas.xp_drop(data.xp * (ELITE_XP if elite else 1), GameState.minutes()))
+		var xp := Formulas.xp_drop(data.xp * (ELITE_XP if elite else 1), GameState.minutes()) if randf() < xp_chance else 0
+		EventBus.enemy_died.emit(global_position, xp)
 		_on_death()
 		queue_free()

@@ -20,6 +20,7 @@ func try_revive() -> bool:
 		blast.damage = BLAST_DAMAGE * player.damage_mult()
 		blast.radius = BLAST_RADIUS
 		blast.color = Color(1.0, 0.65, 0.25)
+		blast.fire = true
 		blast.source = data.id
 		blast.position = center
 		player.projectile_root.add_child.call_deferred(blast)

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="WeaponData" format=3]
 
 [ext_resource type="Script" path="res://data/weapon_data.gd" id="1_data"]
-[ext_resource type="Texture2D" path="res://assets/sprites/custom/bell.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/sprites/fantasy_arena/weapons/16/frost_bell.png" id="2_icon"]
 [ext_resource type="Script" path="res://scenes/weapons/frost_bell_weapon.gd" id="3_script"]
 
 [resource]

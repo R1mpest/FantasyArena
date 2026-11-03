@@ -13,7 +13,9 @@ config_version=5
 config/name="Fantasy Arena"
 config/description="Курсовая ТРПО: 2D survivors-like на Godot 4"
 run/main_scene="res://scenes/main/main_menu.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.png"
 
 [autoload]
 
@@ -21,6 +23,9 @@ SaveManager="*res://autoload/save_manager.gd"
 EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 Transition="*res://autoload/transition.gd"
+Sfx="*res://autoload/sfx.gd"
+Music="*res://autoload/music.gd"
+Stats="*res://autoload/stats.gd"
 
 [display]
 
@@ -29,6 +34,7 @@ window/size/viewport_height=360
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
+window/handheld/orientation=4
 
 [layer_names]
 
@@ -40,3 +46,4 @@ window/stretch/mode="canvas_items"
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

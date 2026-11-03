@@ -7,6 +7,11 @@ const LIFETIME := 3.5
 var velocity := Vector2.ZERO
 var damage := 8.0
 var color := Color(0.45, 0.95, 0.3)
+## Полоса кадров из пака заклинаний; пусто — снаряд рисуется кружком цвета color.
+var strip := ""
+## Или спрайт из пака Fantasy Arena с оттенком tint.
+var sprite := ""
+var tint := Color.WHITE
 
 var _time := 0.0
 
@@ -22,6 +27,14 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	body_entered.connect(_on_body_entered)
+	if strip != "":
+		rotation = velocity.angle()
+		add_child(SpriteLib.strip_sprite(strip))
+	elif sprite != "":
+		var picture := Sprite2D.new()
+		picture.texture = SpriteLib.pack(sprite)
+		picture.modulate = tint
+		add_child(picture)
 
 
 func _physics_process(delta: float) -> void:
@@ -33,6 +46,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if strip != "" or sprite != "":
+		return
 	var pulse := 1.0 + 0.15 * sin(_time * 14.0)
 	draw_circle(Vector2.ZERO, 6.0 * pulse, Color(color, 0.25))
 	draw_circle(Vector2.ZERO, 3.5, color)

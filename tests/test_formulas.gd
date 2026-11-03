@@ -18,6 +18,11 @@ func _ready() -> void:
 	_test_elites()
 	_test_bosses()
 	_test_magnet()
+	_test_arena()
+	_test_arena_events()
+	_test_touch_aim()
+	_test_gamepad()
+	_test_stats()
 	_test_spawn_types()
 	_test_personal_perks()
 	_test_settings()
@@ -37,8 +42,10 @@ func _test_xp() -> void:
 
 func _test_difficulty() -> void:
 	_check(is_equal_approx(Formulas.difficulty(0.0), 1.0), "k(0) = 1")
-	_check(is_equal_approx(Formulas.difficulty(10.0), 1.4), "k(10) = 1,4")
-	_check(is_equal_approx(Formulas.difficulty(15.0), 1.6), "k(15) = 1,6")
+	_check(is_equal_approx(Formulas.difficulty(8.0), 1.704), "k(8) = 1,704")
+	_check(is_equal_approx(Formulas.difficulty(15.0), 2.95), "k(15) = 2,95")
+	_check(is_equal_approx(Formulas.enemy_damage(0.0), 1.0), "d(0) = 1")
+	_check(is_equal_approx(Formulas.enemy_damage(15.0), 1.75), "d(15) = 1,75")
 	_check(is_equal_approx(Formulas.xp_multiplier(15.0), 1.0) and Formulas.xp_drop(6, 10.0) == 6, "опыт с врага не растёт со временем: темп задаёт XP(L)")
 
 
@@ -337,7 +344,7 @@ func _test_bosses() -> void:
 	GameState.elapsed = 300.0
 	spawner.check_bosses()
 	var ogre: Boss = get_tree().get_first_node_in_group(&"bosses")
-	_check(ogre is OgreChief and ogre.hp == 2250.0, "на 5:00 появляется Огр-вожак с 2250 ОЗ")
+	_check(ogre is OgreChief and ogre.hp == 5000.0, "на 5:00 появляется Огр-вожак с 5000 ОЗ")
 	ogre.freeze(1.0)
 	ogre.push(Vector2(500, 0))
 	_check(not ogre.is_frozen() and ogre._knockback == Vector2.ZERO, "босс не замерзает и не отбрасывается")
@@ -377,6 +384,160 @@ func _test_magnet() -> void:
 	_check(gems.all(func(g: XpGem) -> bool: return g._attracted), "кристалл-магнит притягивает весь опыт на полу")
 	for gem in gems:
 		gem.free()
+	_free_build(build)
+
+
+func _test_arena() -> void:
+	var arena := ArenaBuilder.new()
+	add_child(arena)
+	_check(arena.contains(Vector2.ZERO) and not arena.contains(Vector2(2000, 0)), "центр арены на поле, далеко за стеной — нет")
+	_check(not arena.contains(Vector2(-700, -440)), "срезанный угол — не поле")
+	var pushed := arena.clamp_inside(Vector2(5000, 3000), 8.0)
+	_check(arena.contains(pushed, 7.9), "точку из-за стены выталкивает на поле")
+	_check(arena.gates.size() == 8 and arena.gates[0].is_main, "8 ворот, первые — главные")
+
+	var build := _new_build()
+	var player: Player = build[0]
+	var spawner := EnemySpawner.new()
+	spawner.player = player
+	var field := Node2D.new()
+	add_child(field)
+	spawner.enemies_root = field
+	spawner.arena = arena
+	add_child(spawner)
+	var saved_time := GameState.elapsed
+	GameState.elapsed = 100.0
+	spawner._spawn_group(spawner.type_of(&"goblin"), 1.0, false, 300)
+	var gate: ArenaGate = spawner._pending[0]["gate"]
+	_check(gate.is_open() and field.get_child_count() == 0, "волна ждёт, пока поднимается решётка")
+	GameState.elapsed = 100.0 + EnemySpawner.GATE_LEAD
+	spawner._release_pending()
+	var enemy: Enemy = field.get_child(0)
+	_check(enemy != null and enemy.global_position.distance_to(gate.spawn_point) < 20.0, "враг выходит из ворот")
+	enemy.global_position = Vector2(4000, 0)
+	enemy.keep_in_arena()
+	_check(arena.contains(enemy.global_position, enemy.data.radius - 0.1), "враг не выходит за стену")
+	GameState.elapsed = 100.0 + EnemySpawner.GATE_LEAD + EnemySpawner.GATE_HOLD
+	spawner._close_gates()
+	_check(not gate.is_open(), "ворота закрываются после выхода волны")
+
+	var shaman := spawner.type_of(&"orc_shaman")
+	for i in shaman.max_alive + 3:
+		spawner._spawn_group(shaman, 4.0, false, 300)
+	GameState.elapsed = 200.0
+	spawner._release_pending()
+	_check(get_tree().get_node_count_in_group(&"enemy_orc_shaman") == shaman.max_alive, "из ворот не выходит больше шаманов, чем их лимит")
+	GameState.elapsed = saved_time
+	spawner.free()
+	field.free()
+	arena.free()
+	_free_build(build)
+
+
+func _test_arena_events() -> void:
+	var arena := ArenaBuilder.new()
+	add_child(arena)
+	var build := _new_build()
+	var player: Player = build[0]
+	var field := Node2D.new()
+	add_child(field)
+	var spawner := EnemySpawner.new()
+	spawner.player = player
+	spawner.enemies_root = field
+	spawner.arena = arena
+	add_child(spawner)
+	var director := ArenaEvents.new()
+	director.spawner = spawner
+	director.arena = arena
+	director.player = player
+	add_child(director)
+	var titles := []
+	var on_event := func(title: String) -> void: titles.append(title)
+	EventBus.arena_event.connect(on_event)
+	var saved_time := GameState.elapsed
+	var saved_running := GameState.running
+	GameState.running = true
+	spawner.table = spawner.table.duplicate()
+	spawner.table.events = [{"time": 50.0, "type": "line", "enemy": "skelet", "gap": 3, "speed": 70.0},
+		{"time": 60.0, "type": "pack", "enemy": "goblin", "count": 12, "speed_mult": 1.8},
+		{"time": 70.0, "type": "ring", "enemy": "skelet"}]
+
+	GameState.elapsed = 48.6
+	director._process(0.0)
+	var line_gates: Array = director._prepared["gates"]
+	var across: Vector2 = (director._prepared["direction"] as Vector2).orthogonal()
+	_check(titles == ["Шеренга!"] and line_gates.all(func(g: ArenaGate) -> bool: return g.is_open()), "за 1,5 с до Шеренги — надпись и открытые ворота")
+	GameState.elapsed = 50.0
+	director._process(0.0)
+	var line := field.get_children()
+	line.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.position.dot(across) < b.position.dot(across))
+	var widest := 0.0
+	for i in range(1, line.size()):
+		widest = maxf(widest, (line[i].position - line[i - 1].position).dot(across))
+	# За крайними врагами строя следующий шаг уже за стеной.
+	_check(line.size() > 20 and not arena.contains(line[0].position - across * ArenaEvents.LINE_STEP, 8.0)
+		and not arena.contains(line[-1].position + across * ArenaEvents.LINE_STEP, 8.0),
+		"Шеренга идёт через всю арену, от стены до стены")
+	_check(is_equal_approx(widest, ArenaEvents.LINE_STEP * 4.0), "в Шеренге одна дыра на 3 врага")
+	var marcher: Enemy = line[0]
+	var normal := spawner._make(marcher.data, GameState.minutes(), false, Vector2.ZERO)
+	_check(marcher.march_speed == 70.0 and marcher.xp_chance == 0.5, "в строю марш 70 px/с и половина опыта")
+	_check(is_equal_approx(marcher.hp, normal.data.max_hp * normal.k * ArenaEvents.HP_MULT), "враги событий вчетверо крепче обычных")
+	normal.free()
+	marcher.global_position = arena.clamp_inside(marcher.global_position + marcher.march_direction * 5000.0, marcher.data.radius)
+	marcher._march(0.5)
+	_check(marcher.march_speed == 0.0, "упёрся в стену — марш закончен, дальше обычный враг")
+
+	for node in field.get_children():
+		node.free()
+	GameState.elapsed = 58.6
+	director._process(0.0)
+	GameState.elapsed = 60.0
+	director._process(0.0)
+	var pack := field.get_children()
+	var toward_hero: bool = pack.size() == 12 and pack.all(func(e: Enemy) -> bool:
+		return e.march_direction.dot(e.global_position.direction_to(player.global_position)) > 0.8)
+	_check(toward_hero, "Стая из 12 летит в сторону героя")
+
+	var drops := []
+	var on_died := func(_at: Vector2, xp: int) -> void: drops.append(xp)
+	EventBus.enemy_died.connect(on_died)
+	var no_xp: Enemy = pack[0]
+	no_xp.xp_chance = 0.0
+	no_xp.take_damage(1000.0)
+	EventBus.enemy_died.disconnect(on_died)
+	_check(drops == [0], "враг из события без выпавшего опыта сообщает 0 опыта (кристалла не будет)")
+
+	for node in field.get_children():
+		node.free()
+	player.global_position = arena.clamp_inside(Vector2.ZERO, 0.0)
+	GameState.elapsed = 68.6
+	director._process(0.0)
+	_check(titles.back() == "Окружение!" and director._prepared["gates"].is_empty(), "перед Окружением — надпись, ворота закрыты")
+	GameState.elapsed = 70.0
+	director._process(0.0)
+	var ring := field.get_children()
+	var on_circle := ring.size() > 40
+	for e: Enemy in ring:
+		var to_hero := e.global_position.direction_to(player.global_position)
+		var distance := e.global_position.distance_to(player.global_position)
+		if absf(distance - ArenaEvents.RING_RADIUS) > 1.0 or e.march_direction.dot(to_hero) < 0.99:
+			on_circle = false
+	_check(on_circle, "Окружение: кольцо из 40+ врагов вокруг героя идёт к центру")
+	var closer: Enemy = ring[0]
+	_check(is_equal_approx(closer.march_speed * ArenaEvents.RING_TIME, ArenaEvents.RING_RADIUS - ArenaEvents.RING_END)
+		and closer.vanish_at == 70.0 + ArenaEvents.RING_TIME, "кольцо сжимается до RING_END ровно за RING_TIME")
+	GameState.elapsed = 70.0 + ArenaEvents.RING_TIME
+	closer._physics_process(0.016)
+	_check(closer.dead and not closer.is_in_group(&"enemies"), "дойдя до центра, враг кольца растворяется")
+
+	EventBus.arena_event.disconnect(on_event)
+	GameState.elapsed = saved_time
+	GameState.running = saved_running
+	director.free()
+	spawner.free()
+	field.free()
+	arena.free()
 	_free_build(build)
 
 
@@ -457,3 +618,81 @@ func _check(condition: bool, name: String) -> void:
 	else:
 		_failed += 1
 		printerr("ПРОВАЛ: ", name)
+
+
+## Правый джойстик: работает только в ручном прицеле, держит направление, пока палец на экране.
+func _test_touch_aim() -> void:
+	var saved_mode := SaveManager.aim_mode
+	var controls := TouchControls.new()
+	add_child(controls)
+	var touch := InputEventScreenTouch.new()
+	touch.index = 1
+	touch.position = Vector2(500, 200)
+	touch.pressed = true
+	var drag := InputEventScreenDrag.new()
+	drag.index = 1
+	drag.position = Vector2(500, 170)
+
+	SaveManager.aim_mode = SaveManager.AimMode.AUTO
+	controls._input(touch)
+	controls._input(drag)
+	_check(TouchControls.aim == Vector2.ZERO, "в автоприцеле правая половина экрана не прицеливается")
+
+	SaveManager.aim_mode = SaveManager.AimMode.MOUSE
+	controls._input(touch)
+	controls._input(drag)
+	_check(TouchControls.aim.is_equal_approx(Vector2.UP), "правый джойстик вверх — прицел вверх")
+	touch.pressed = false
+	controls._input(touch)
+	_check(TouchControls.aim == Vector2.ZERO, "палец отпущен — прицел джойстика сброшен")
+
+	SaveManager.aim_mode = saved_mode
+	controls.free()
+
+
+## Геймпад: A — нажать, B и Start — назад/пауза, крестовина двигает героя.
+func _test_gamepad() -> void:
+	InputSetup.ensure()
+	InputSetup.ensure()
+	var press := func(button: JoyButton) -> InputEventJoypadButton:
+		var event := InputEventJoypadButton.new()
+		event.button_index = button
+		event.pressed = true
+		event.device = 1
+		return event
+	_check(InputMap.event_is_action(press.call(JOY_BUTTON_A), &"ui_accept"), "A на любом геймпаде нажимает кнопки")
+	_check(InputMap.event_is_action(press.call(JOY_BUTTON_B), &"ui_cancel")
+		and InputMap.event_is_action(press.call(JOY_BUTTON_START), &"ui_cancel"), "B и Start — назад и пауза")
+	_check(InputMap.event_is_action(press.call(JOY_BUTTON_DPAD_LEFT), &"move_left")
+		and InputMap.event_is_action(press.call(JOY_BUTTON_DPAD_DOWN), &"move_down"), "крестовина двигает героя")
+	var accept_events := InputMap.action_get_events(&"ui_accept").filter(func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	_check(accept_events.size() == 1, "повторный InputSetup.ensure не дублирует кнопки")
+
+
+## Статистика: итоги складываются, рекорды обновляются, быстрая победа — минимум времени.
+func _test_stats() -> void:
+	var saved := [Stats.path, Stats.records.duplicate(), Stats.totals.duplicate()]
+	var file := "user://test_stats.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
+	Stats.load_from(file)
+	Stats.record(300.0, 12, 400, 1, false)
+	Stats.record(910.0, 38, 6000, 3, true)
+	_check(Stats.totals[&"runs"] == 2 and Stats.totals[&"wins"] == 1 and Stats.totals[&"deaths"] == 1, "итоги: 2 забега, 1 победа, 1 поражение")
+	_check(Stats.totals[&"kills"] == 6400 and is_equal_approx(Stats.totals[&"time"], 1210.0), "итоги: убийства и время складываются")
+	_check(Stats.records[&"best_level"] == 38 and Stats.records[&"best_kills"] == 6000, "рекорды: максимальный уровень и убийства")
+	_check(Stats.new_records.has("Максимальный уровень") and not Stats.new_records.has("Самая быстрая победа"),
+		"новый рекорд отмечается, первая победа — без надписи «новый рекорд»")
+	Stats.record(850.0, 30, 5000, 3, true)
+	_check(is_equal_approx(Stats.records[&"fastest_win"], 850.0) and Stats.records[&"best_level"] == 38, "быстрая победа — меньшее время, уровень не понизился")
+	Stats.record(60.0, 2, 20, 0, false, false)
+	_check(Stats.totals[&"runs"] == 4 and Stats.totals[&"deaths"] == 1, "брошенный забег идёт в итоги, но не в поражения")
+	Stats.save()
+	Stats.load_from(file)
+	_check(Stats.totals[&"runs"] == 4 and is_equal_approx(Stats.records[&"fastest_win"], 850.0), "статистика сохраняется в файл и читается обратно")
+	_check(Stats.format_value(&"time", 3725.0) == "1 ч 02 мин" and Stats.format_value(&"best_time", 905.0) == "15:05"
+		and Stats.format_value(&"best_bosses", null) == "—", "время в статистике: мм:сс и часы")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(file))
+	Stats.path = saved[0]
+	Stats.records = saved[1]
+	Stats.totals = saved[2]
+

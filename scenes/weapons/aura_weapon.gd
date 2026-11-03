@@ -38,5 +38,6 @@ func _radius() -> float:
 
 func _draw() -> void:
 	var r := _radius()
-	draw_circle(Vector2.ZERO, r, Color(0.6, 0.3, 1.0, 0.1 + 0.12 * _pulse))
-	draw_arc(Vector2.ZERO, r, 0.0, TAU, 56, Color(0.8, 0.55, 1.0, 0.45 + 0.4 * _pulse), 1.0)
+	# Святой свет: золотые цвета из иконки ауры.
+	draw_circle(Vector2.ZERO, r, Color(1.0, 0.85, 0.3, 0.12 + 0.12 * _pulse))
+	draw_arc(Vector2.ZERO, r, 0.0, TAU, 56, Color(1.0, 0.9, 0.43, 0.55 + 0.4 * _pulse), 1.0)

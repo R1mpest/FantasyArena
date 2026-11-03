@@ -1,13 +1,13 @@
 class_name Hud
 extends CanvasLayer
 ## HUD по раскладке HoloCure: слева сверху портрет героя, ОЗ и щит, под ними
-## ряд из 6 слотов оружия и ряд из 6 слотов предметов; таймер по центру;
+## ряд из 6 слотов оружия, ряд из 6 слотов предметов и 3 слота навыков (рамки из пака); таймер по центру;
 ## уровень, убийства и «Поток» справа; полоса опыта во всю ширину сверху.
 
-const SLOT := 16
-const SLOT_GAP := 2
+const SLOT := 20
+const SLOT_GAP := 1
 const SLOTS_X := 40.0
-const HP_WIDTH := 106.0
+const HP_WIDTH := 125.0
 
 var player: Player
 var experience: Experience
@@ -22,6 +22,8 @@ var _time_label: Label
 var _kills_label: Label
 var _weapon_slots: Array[Control] = []
 var _item_slots: Array[Control] = []
+var _skill_slots: Array[Control] = []
+var _boss_arrow: TextureRect
 ## Состояние слотов в прошлый раз: перестраиваем иконки, только когда оно меняется.
 var _slots_signature := ""
 var _boss: Enemy
@@ -74,10 +76,21 @@ func _ready() -> void:
 	root.add_child(_shield_bar)
 
 	for i in UpgradeSystem.CLASS_SLOTS + UpgradeSystem.GENERAL_SLOTS:
-		var accent := Color(0.95, 0.75, 0.3) if i < UpgradeSystem.CLASS_SLOTS else Color(0.55, 0.6, 0.75)
-		_weapon_slots.append(_make_slot(root, Vector2(SLOTS_X + i * (SLOT + SLOT_GAP), 25), accent))
+		var frame := "ui/slot_weapon_class" if i < UpgradeSystem.CLASS_SLOTS else "ui/slot_weapon_common"
+		_weapon_slots.append(_make_slot(root, Vector2(SLOTS_X + i * (SLOT + SLOT_GAP), 24), frame))
 	for i in UpgradeSystem.ITEM_SLOTS:
-		_item_slots.append(_make_slot(root, Vector2(SLOTS_X + i * (SLOT + SLOT_GAP), 44), Color(0.45, 0.65, 1.0)))
+		_item_slots.append(_make_slot(root, Vector2(SLOTS_X + i * (SLOT + SLOT_GAP), 45), "ui/slot_item"))
+	for i in player.character.skills.size():
+		_skill_slots.append(_make_slot(root, Vector2(SLOTS_X + i * (SLOT + SLOT_GAP), 66), "ui/slot_skill"))
+
+	_boss_arrow = TextureRect.new()
+	_boss_arrow.texture = SpriteLib.pack("ui/edge_arrow")
+	_boss_arrow.size = Vector2(16, 16)
+	_boss_arrow.pivot_offset = Vector2(8, 8)
+	_boss_arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_boss_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_boss_arrow)
+	_boss_arrow.hide()
 
 	_time_label = UiKit.label("", 14, HORIZONTAL_ALIGNMENT_CENTER)
 	_time_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -109,6 +122,7 @@ func _ready() -> void:
 	root.add_child(_banner)
 	_banner.hide()
 	EventBus.boss_incoming.connect(_on_boss_incoming)
+	EventBus.arena_event.connect(func(title: String) -> void: _show_banner(title, Color(1, 0.8, 0.35)))
 	EventBus.boss_spawned.connect(func(boss: Node2D) -> void: _boss = boss as Enemy)
 
 	_level_label = _right_label(root, 10, 8)
@@ -138,14 +152,42 @@ func _process(_delta: float) -> void:
 func _update_boss() -> void:
 	var alive := is_instance_valid(_boss) and not _boss.dead
 	_boss_box.visible = alive
+	_update_boss_arrow(alive)
 	if alive:
 		_boss_name.text = _boss.data.display_name
 		_boss_bar.max_value = _boss.full_hp
 		_boss_bar.value = _boss.hp
 
 
+## Стрелка у края экрана, если босс за его пределами.
+func _update_boss_arrow(alive: bool) -> void:
+	var view := get_viewport().get_visible_rect().size
+	var at := _boss.get_global_transform_with_canvas().origin if alive else Vector2.ZERO
+	var inside := Rect2(Vector2.ZERO, view).grow(-8.0).has_point(at)
+	_boss_arrow.visible = alive and not inside
+	if not _boss_arrow.visible:
+		return
+	var center := view / 2.0
+	var direction := center.direction_to(at)
+	var edge := Rect2(Vector2.ZERO, view).grow(-14.0)
+	# Луч из центра до рамки: где он пересекает край экрана.
+	var t := INF
+	if direction.x != 0.0:
+		t = minf(t, ((edge.end.x if direction.x > 0.0 else edge.position.x) - center.x) / direction.x)
+	if direction.y != 0.0:
+		t = minf(t, ((edge.end.y if direction.y > 0.0 else edge.position.y) - center.y) / direction.y)
+	_boss_arrow.position = center + direction * t - Vector2(8, 8)
+	_boss_arrow.rotation = direction.angle()
+	_boss_arrow.modulate.a = 0.6 + 0.4 * sin(GameState.elapsed * 8.0)
+
+
 func _on_boss_incoming(title: String) -> void:
-	_banner.text = "Босс приближается: %s" % title
+	_show_banner("Босс приближается: %s" % title, Color(1, 0.4, 0.35))
+
+
+func _show_banner(text: String, color: Color) -> void:
+	_banner.text = text
+	_banner.add_theme_color_override(&"font_color", color)
 	_banner.modulate.a = 1.0
 	_banner.show()
 	var fade := create_tween()
@@ -163,6 +205,8 @@ func _update_slots() -> void:
 	for weapon in class_weapons + general_weapons:
 		signature += "%s%d," % [weapon.data.id, weapon.level]
 	signature += "|%s|%s|%s" % [player.items, player.spent_items, player.healing_blocked()]
+	for skill in player.character.skills:
+		signature += ",%d" % player.skill_level(skill)
 	if signature == _slots_signature:
 		return
 	_slots_signature = signature
@@ -176,14 +220,18 @@ func _update_slots() -> void:
 		_fill_slot(_item_slots[i], item.icon if item != null else null, player.items[ids[i]] if item != null else 0)
 		if item != null and (player.item_disabled(item.id) or player.spent_items.has(item.id)):
 			_item_slots[i].modulate = Color(0.4, 0.4, 0.4)
+	var skills := player.character.skills.filter(func(s: SkillData) -> bool: return player.skill_level(s) > 0)
+	for i in _skill_slots.size():
+		var skill: SkillData = skills[i] if i < skills.size() else null
+		_fill_slot(_skill_slots[i], skill.icon if skill != null else null, player.skill_level(skill) if skill != null else 0)
 
 
-func _make_slot(root: Control, at: Vector2, accent: Color) -> Control:
-	var slot := Panel.new()
+func _make_slot(root: Control, at: Vector2, frame: String) -> Control:
+	var slot := TextureRect.new()
+	slot.texture = SpriteLib.pack(frame)
 	slot.position = at
 	slot.size = Vector2(SLOT, SLOT)
 	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	slot.add_theme_stylebox_override(&"panel", UiKit.box(Color(0.08, 0.06, 0.1, 0.75), accent.darkened(0.3), 1))
 	var icon := TextureRect.new()
 	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	icon.offset_left = 2

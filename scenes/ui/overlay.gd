@@ -74,12 +74,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _show(mode: Mode) -> void:
+	if mode == Mode.PAUSE:
+		Sfx.play(&"pause", 0.0)
 	_mode = mode
 	get_tree().paused = true
 	_title.text = {Mode.PAUSE: "Пауза", Mode.DEAD: "Поражение", Mode.VICTORY: "Победа!"}[mode]
 	_title.add_theme_color_override(&"font_color", Color(1, 0.85, 0.4) if mode == Mode.VICTORY else Color.WHITE)
+	(_title.get_parent().get_parent() as PanelContainer).add_theme_stylebox_override(&"panel", UiKit.pack_panel(mode == Mode.VICTORY))
 	_button.text = "Продолжить (Esc)" if mode == Mode.PAUSE else "Заново (R)"
 	_stats.text = "Время: %s\nУровень: %d\nУбито: %d" % [GameState.format_time(), GameState.level, GameState.kills]
+	if mode != Mode.PAUSE and not Stats.new_records.is_empty():
+		_stats.text += "\nНовый рекорд: " + ", ".join(Stats.new_records).to_lower()
 	_update_hero_stats()
 	_root.show()
 	_button.grab_focus()
@@ -108,7 +113,7 @@ func _build_hero_panel() -> void:
 	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	panel.offset_left = 16
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	panel.add_theme_stylebox_override(&"panel", UiKit.box(Color(0.13, 0.1, 0.16, 0.92), Color(0.55, 0.45, 0.65), 1))
+	panel.add_theme_stylebox_override(&"panel", UiKit.pack_panel())
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override(&"separation", 4)
 	panel.add_child(column)

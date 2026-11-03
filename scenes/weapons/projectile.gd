@@ -25,6 +25,7 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	rotation = velocity.angle()
+	add_child(SpriteLib.pack_sprite("projectiles/magic_bolt", 8.0))
 	body_entered.connect(_on_body_entered)
 
 
@@ -36,11 +37,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
+	# Снаряд, который взорвётся (5-й уровень), подсвечен.
 	if blast_radius > 0.0:
-		draw_circle(Vector2.ZERO, 6.0, Color(0.75, 0.5, 1.0, 0.4))
-	draw_circle(Vector2(-3, 0), 2.0, Color(0.45, 0.7, 1.0, 0.35))
-	draw_circle(Vector2.ZERO, 3.5, Color(0.45, 0.75, 1.0, 0.55))
-	draw_circle(Vector2.ZERO, 2.0, Color(0.9, 0.97, 1.0))
+		draw_circle(Vector2.ZERO, 7.0, Color(1.0, 0.6, 1.0, 0.45))
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -48,6 +47,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if _spent or enemy == null or enemy.dead:
 		return
 	enemy.take_damage(damage, velocity.normalized(), source)
+	SpriteFx.spawn.call_deferred(get_parent(), global_position, "effects/hit_spark", 20.0)
 	if blast_radius > 0.0:
 		var blast := Blast.new()
 		blast.damage = damage

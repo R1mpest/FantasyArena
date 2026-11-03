@@ -27,10 +27,11 @@ func _physics_process(delta: float) -> void:
 	var player := hero()
 	if player == null or player.dead:
 		return
-	# Босс не отстаёт: если герой убежал слишком далеко, появляется ближе.
-	if global_position.distance_to(player.global_position) > CATCH_UP_DISTANCE:
+	# Без арены босс не отстаёт: если герой убежал слишком далеко, появляется ближе.
+	if arena == null and global_position.distance_to(player.global_position) > CATCH_UP_DISTANCE:
 		global_position = player.global_position + Vector2.from_angle(randf() * TAU) * CATCH_UP_DISTANCE * 0.5
 	_boss_process(delta)
+	keep_in_arena()
 
 
 ## Поведение конкретного босса.
@@ -65,32 +66,38 @@ func telegraph_line(from: Vector2, direction: Vector2, length: float, width: flo
 	_telegraphs.append({"kind": "line", "at": from, "to": from + direction * length, "width": width, "time": time, "total": time, "color": color, "on_done": Callable()})
 
 
-func shoot(direction: Vector2, speed: float, damage_amount: float, color: Color) -> void:
+func shoot(direction: Vector2, speed: float, damage_amount: float, color: Color, strip: String = "") -> void:
 	var shot := EnemyProjectile.new()
 	shot.position = center()
 	shot.velocity = direction * speed
 	shot.damage = damage_amount
 	shot.color = color
+	shot.strip = strip
 	get_parent().add_child(shot)
 
 
-## Призыв врагов кольцом вокруг босса.
+## Призыв врагов кольцом вокруг босса. Лимит минуты на призыв не действует (это атака босса),
+## но общий потолок врагов и лимиты типа соблюдаются.
 func summon(id: StringName, count: int, radius: float) -> void:
 	var type := spawner.type_of(id) if spawner != null else null
 	if type == null:
 		return
 	for i in count:
+		if get_tree().get_node_count_in_group(&"enemies") >= EnemySpawner.MAX_ENEMIES or spawner._at_cap(type, {}):
+			return
 		spawner._spawn(type, GameState.minutes(), false, global_position + Vector2.from_angle(TAU * i / count) * radius)
 
 
 ## Взрыв-вспышка без урона по врагам (урон герою наносит сам босс).
-func flash_blast(at: Vector2, radius: float, color: Color) -> void:
+func flash_blast(at: Vector2, radius: float, color: Color, fire: bool = false) -> void:
 	var blast := Blast.new()
+	blast.fire = fire
 	blast.damage = 0.0
 	blast.radius = radius
 	blast.color = color
 	blast.position = at
 	get_parent().add_child(blast)
+	Sfx.play(&"explosion")
 
 
 func _update_telegraphs(delta: float) -> void:

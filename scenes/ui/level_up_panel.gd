@@ -1,12 +1,18 @@
 class_name LevelUpPanel
 extends CanvasLayer
-## Окно повышения уровня: пауза и выбор 1 из 3 карт (мышь, стрелки+Enter или 1–3).
+## Окно повышения уровня: пауза и выбор 1 из 3 карт (мышь, стрелки+Enter, 1–3, крестовина+A).
+
+## Сколько после появления карт игнорировать нажатия игрока: кнопка, зажатая в бою
+## (A, Enter), иначе выбрала бы карту не глядя.
+const INPUT_DELAY_MS := 350
 
 var upgrade_system: UpgradeSystem
 
 var _pending := 0
 var _level := 1
 var _busy := false
+## Когда открылся текущий выбор (реальное время, игра в это время на паузе).
+var _opened_msec := 0
 var _options: Array[CardOffer] = []
 var _cards: Array[UpgradeCard] = []
 var _dim: ColorRect
@@ -52,10 +58,17 @@ func options() -> Array[CardOffer]:
 
 
 ## Возвращает false, если выбрать сейчас нельзя (окно закрыто или идёт анимация).
+## Выбор игроком (кнопкой, клавишей): первые INPUT_DELAY_MS после появления не считаются.
+func _player_choose(index: int) -> void:
+	if Time.get_ticks_msec() - _opened_msec >= INPUT_DELAY_MS:
+		choose(index)
+
+
 func choose(index: int) -> bool:
 	if not is_open() or _busy or index < 0 or index >= _options.size():
 		return false
 	_busy = true
+	Sfx.play(&"card", 0.0)
 	_play_choice(index)
 	return true
 
@@ -101,11 +114,12 @@ func _show_choices() -> void:
 	for i in _options.size():
 		var card := UpgradeCard.new()
 		card.setup(_options[i], i + 1)
-		card.pressed.connect(choose.bind(i))
+		card.pressed.connect(_player_choose.bind(i))
 		_row.add_child(card)
 		card.play_in(0.12 * i)
 		_cards.append(card)
 	_dim.show()
+	_opened_msec = Time.get_ticks_msec()
 	_cards[0].grab_focus.call_deferred()
 
 
@@ -117,4 +131,4 @@ func _unhandled_input(event: InputEvent) -> void:
 		var index := key.physical_keycode - KEY_1
 		if index >= 0 and index < _options.size():
 			get_viewport().set_input_as_handled()
-			choose(index)
+			_player_choose(index)
